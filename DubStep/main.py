@@ -82,7 +82,7 @@ stateTransitionFunction = {
 
 initState = 0  # q0 - стартовий стан
 F = {2, 3, 5, 7, 9, 11, 12, 15, 16, 18}
-Fstar = {2, 3, 5, 7, 15}  # зірочка
+Fstar = {3, 5, 7, 15}  # зірочка
 Ferror = {9, 16}  # обробка помилок
 
 tableOfId = {}  # Таблиця ідентифікаторів
@@ -134,7 +134,7 @@ def processing():
         numLine += 1
         lexeme = ''
         state = initState
-    if state in (3, 5, 7):  # id, keyword, int, float
+    if state in (3, 5, 7):  # id, keyword; int; float
         token = getToken(state, lexeme)
         if token != 'keyword':
             index = indexIdConst(state, lexeme)
@@ -146,14 +146,14 @@ def processing():
         lexeme = ''
         numChar = putCharBack(numChar)  # зірочка
         state = initState
-    if state in (11, 12): # asign_op (':='), add_op ('+', '-'), rel_op ('=', '>=', '<=', '<>'), mult_op('*', '/'), step_op ('^'), brackets_op ('(', ')'), punct (',', ';')
+    if state in (11, 12): # 11: asign_op (':=') ; 12: add_op ('+', '-'), rel_op ('=', '>=', '<=', '<>'), mult_op('*', '/'), step_op ('^'), brackets_op ('(', ')'), punct (',', ';')
         lexeme += char
         token = getToken(state, lexeme)
         print('{0:<3d} {1:<10s} {2:<10s} '.format(numLine, lexeme, token))
         tableOfSymb[len(tableOfSymb) + 1] = (numLine, lexeme, token, '')
         lexeme = ''
         state = initState
-    if state == 15:     # rel_op ('>', '<')
+    if state == 15:     # rel_op ('>', '<'), punct (':')
         if len(lexeme) > 1:
             lexeme = lexeme[:-1]
         numChar = putCharBack(numChar)  # зірочка

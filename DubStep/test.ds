@@ -1,9 +1,9 @@
 program counter
 var 
-	count: integer;
+	count: int;
 	input: real; 
-	sum: integer; 
-	flag: boolean; 
+	sum: int; 
+	flag: bool; 
 begin 
 	sum := 0;
 	read(count); 
@@ -13,6 +13,6 @@ begin
 		if (input > 5) do 
 			sum := sum + input;
 		else 
-			write(false) 
+			write(input) 
 		end
 end.
