@@ -59,7 +59,7 @@ tokStateTable = {
 
 # δ - state-transition_function
 stateTransitionFunction = {
-    (0, 'ws'): 0, (0, 'eol'): 0,
+    (0, 'ws'): 0, (0, 'eol'): 18,
 
     (0, 'Letter'): 1, (1, 'Letter'): 1, (1, 'Digit'): 1, (1, '.'): 2, (1, 'Other'): 3,
 
@@ -95,13 +95,97 @@ sourceCode = f.read()
 f.close()
 
 # FSuccess - ознака успішності розбору
-FSuccess = (True, 'Lexer')
+FSuccess = ('Lexer', False)
 
 lenCode = len(sourceCode) - 1  # номер останнього символа у файлі з кодом програми
 numLine = 1  # лексичний аналіз починаємо з першого рядка
 numChar = -1  # з першого символа (в Python'і нумерація - з 0)
 char = ''  # ще не брали жодного символа
 lexeme = ''  # ще не починали розпізнавати лексеми
+
+
+
+def lex():
+    global state, numLine, char, lexeme, numChar, FSuccess
+    try:
+        while numChar < lenCode:
+            char = nextChar()  # прочитати наступний символ
+            classCh = classOfChar(char)  # до якого класу належить
+            state = nextState(state, classCh)  # обчислити наступний стан
+            if (is_final(state)):  # якщо стан заключний
+                processing()  # виконати семантичні процедури
+            elif state == initState:
+                lexeme = ''  # якщо стан НЕ заключний, а стартовий - нова лексема
+            else:
+                lexeme += char  # якщо стан НЕ закл. і не стартовий - додати символ до лексеми
+        print('Lexer: Лексичний аналіз завершено успішно')
+    except SystemExit as e:
+        # Встановити ознаку неуспішності
+        FSuccess = (False, 'Lexer')
+        # Повідомити про факт виявлення помилки
+        print('Lexer: Аварійне завершення програми з кодом {0}'.format(e))
+
+
+def processing():
+    global state, lexeme, char, numLine, numChar, tableOfSymb
+    if state == 18:  # eol 
+        numLine += 1
+        state = initState
+    if state in (3, 5, 7):  # id, keyword, int, float
+        token = getToken(state, lexeme)
+        if token != 'keyword':
+            index = indexIdConst(state, lexeme)
+            print('{0:<3d} {1:<10s} {2:<10s} {3:<2d} '.format(numLine, lexeme, token, index))
+            tableOfSymb[len(tableOfSymb) + 1] = (numLine, lexeme, token, index)
+        else:
+            print('{0:<3d} {1:<10s} {2:<10s} '.format(numLine, lexeme, token))
+            tableOfSymb[len(tableOfSymb) + 1] = (numLine, lexeme, token, '')
+        lexeme = ''
+        numChar = putCharBack(numChar)  # зірочка
+        state = initState
+    if state in (11, 12): # asign_op (':='), add_op ('+', '-'), rel_op ('=', '>=', '<=', '<>'), mult_op('*', '/'), step_op ('^'), brackets_op ('(', ')'), punct (',', ';')
+        lexeme += char
+        token = getToken(state, lexeme)
+        print('{0:<3d} {1:<10s} {2:<10s} '.format(numLine, lexeme, token))
+        tableOfSymb[len(tableOfSymb) + 1] = (numLine, lexeme, token, '')
+        lexeme = ''
+        state = initState
+    if state == 15:     # rel_op ('>', '<')
+        if len(lexeme) > 1:
+            lexeme = lexeme[:-1]
+        numChar = putCharBack(numChar)  # зірочка
+        token = getToken(state, lexeme)
+        print('{0:<3d} {1:<10s} {2:<10s} '.format(numLine, lexeme, token))
+        tableOfSymb[len(tableOfSymb) + 1] = (numLine, lexeme, token, '')
+        lexeme = ''
+        state = initState
+    if state == 2:  # keyword ('.end')
+        try:
+            lexeme = lexeme + char
+            token = getToken(state, lexeme)
+            print('{0:<3d} {1:<10s} {2:<10s} '.format(numLine, lexeme, token))
+            tableOfSymb[len(tableOfSymb) + 1] = (numLine, lexeme, token, '')
+            lexeme = ''
+            state = initState
+        except KeyError:
+            state = 9
+    if state in Ferror:  # (9, 16, 17):  # ERROR
+        fail()
+
+
+def fail():
+    global state, numLine, char, lexeme
+    print(numLine)
+    if state == 16:
+        print('Lexer: у рядку ', numLine, ' неочікуваний символ ' + char)
+        exit(16)
+    if state == 9:
+        print('Lexer: у рядку ', numLine, ' зайвий символ "." в "' + lexeme+char + '"')
+        exit(9)
+    if state == 17:
+        print('Lexer: у рядку ', numLine, ' зайвий символ ":" в "' + lexeme+char + '"')
+        exit(17)
+
 
 
 def is_final(state):
@@ -114,6 +198,9 @@ def nextChar():
     global numChar
     numChar += 1
     return sourceCode[numChar]
+
+def putCharBack(numChar):
+    return numChar - 1
 
 def nextState(state, classChar):
     try:
@@ -157,3 +244,4 @@ def indexIdConst(state, lexeme):
         else:
             indx = indx[1]
     return indx
+
