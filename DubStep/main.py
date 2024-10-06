@@ -104,3 +104,56 @@ char = ''  # ще не брали жодного символа
 lexeme = ''  # ще не починали розпізнавати лексеми
 
 
+def is_final(state):
+    if (state in F):
+        return True
+    else:
+        return False
+
+def nextChar():
+    global numChar
+    numChar += 1
+    return sourceCode[numChar]
+
+def nextState(state, classChar):
+    try:
+        return stateTransitionFunction[(state, classChar)]
+    except KeyError:
+        return stateTransitionFunction[(state, 'Other')]
+    
+def classOfChar(char):
+    if char in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ':
+        res = "Letter"
+    elif char in "0123456789":
+        res = "Digit"
+    elif char in " \t":
+        res = "ws"
+    elif char in "\r\n":
+        res = "nl"
+    elif char in "+-*/^=()<>,;.":
+        res = char
+    else:
+        res = 'символ не належить алфавіту'
+    return res
+
+def getToken(state, lexeme):
+    try:
+        return tokenTable[lexeme]
+    except KeyError:
+        return tokStateTable[state]
+    
+def indexIdConst(state, lexeme):
+    indx = 0
+    if state == 3:
+        indx = tableOfId.get(lexeme)
+        if indx is None:
+            indx = len(tableOfId) + 1
+            tableOfId[lexeme] = indx
+    if state in (5, 7):
+        indx = tableOfConst.get(lexeme)
+        if indx is None:
+            indx = len(tableOfConst) + 1
+            tableOfConst[lexeme] = (tokStateTable[state], indx)
+        else:
+            indx = indx[1]
+    return indx
