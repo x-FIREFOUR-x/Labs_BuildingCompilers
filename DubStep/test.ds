@@ -1,0 +1,18 @@
+program counter
+var 
+	count: integer;
+	input: real; 
+	sum: integer; 
+	flag: boolean; 
+begin 
+	sum := 0;
+	read(count); 
+	for j := 1 to count do 
+	begin 
+		read(input); 
+		if (input > 5) do 
+			sum := sum + input;
+		else 
+			write(false) 
+		end
+end.

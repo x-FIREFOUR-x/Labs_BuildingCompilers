@@ -41,6 +41,7 @@ tokenTable = {
     ';': 'punct',
     ':': 'punct',
     ' ': 'ws',
+    '': 'eol',
     '\t': 'ws',
     '\n': 'eol',
     '\r\n': 'eol',
@@ -66,7 +67,7 @@ stateTransitionFunction = {
     (0, 'Digit'): 4, (4, 'Digit'): 4, (4, 'Other'): 5, (4, '.'): 6, (6, 'Digit'): 6, (6, 'Other'): 7, 
     (0, '.'): 8, (8, 'Digit'): 6, (8, 'Other'): 9,
 
-    (0, ':'): 10, (10, '='): 11, (10, 'Other'): 17,
+    (0, ':'): 10, (10, '='): 11, (10, 'Other'): 15,
 
     (0, '+'): 12, (0, '-'): 12, (0, '*'): 12, (0, '/'): 12, (0, '^'): 12, 
     (0, '('): 12, (0, ')'): 12, 
@@ -80,9 +81,9 @@ stateTransitionFunction = {
 }
 
 initState = 0  # q0 - стартовий стан
-F = {2, 3, 5, 7, 9, 11, 12, 15, 16, 17}
+F = {2, 3, 5, 7, 9, 11, 12, 15, 16, 18}
 Fstar = {2, 3, 5, 7, 15}  # зірочка
-Ferror = {9, 16, 17}  # обробка помилок
+Ferror = {9, 16}  # обробка помилок
 
 tableOfId = {}  # Таблиця ідентифікаторів
 tableOfConst = {}  # Таблиць констант
@@ -118,10 +119,11 @@ def lex():
                 lexeme = ''  # якщо стан НЕ заключний, а стартовий - нова лексема
             else:
                 lexeme += char  # якщо стан НЕ закл. і не стартовий - додати символ до лексеми
+        FSuccess = ('Lexer', True)
         print('Lexer: Лексичний аналіз завершено успішно')
     except SystemExit as e:
         # Встановити ознаку неуспішності
-        FSuccess = (False, 'Lexer')
+        FSuccess = ('Lexer', False)
         # Повідомити про факт виявлення помилки
         print('Lexer: Аварійне завершення програми з кодом {0}'.format(e))
 
@@ -130,6 +132,7 @@ def processing():
     global state, lexeme, char, numLine, numChar, tableOfSymb
     if state == 18:  # eol 
         numLine += 1
+        lexeme = ''
         state = initState
     if state in (3, 5, 7):  # id, keyword, int, float
         token = getToken(state, lexeme)
@@ -169,23 +172,19 @@ def processing():
             state = initState
         except KeyError:
             state = 9
-    if state in Ferror:  # (9, 16, 17):  # ERROR
+    if state in Ferror:  # (9, 16):  # ERROR
         fail()
 
 
 def fail():
     global state, numLine, char, lexeme
     print(numLine)
-    if state == 16:
-        print('Lexer: у рядку ', numLine, ' неочікуваний символ ' + char)
-        exit(16)
     if state == 9:
         print('Lexer: у рядку ', numLine, ' зайвий символ "." в "' + lexeme+char + '"')
         exit(9)
-    if state == 17:
-        print('Lexer: у рядку ', numLine, ' зайвий символ ":" в "' + lexeme+char + '"')
-        exit(17)
-
+    if state == 16:
+        print('Lexer: у рядку ', numLine, ' неочікуваний символ ' + char)
+        exit(16)
 
 
 def is_final(state):
@@ -216,8 +215,8 @@ def classOfChar(char):
     elif char in " \t":
         res = "ws"
     elif char in "\r\n":
-        res = "nl"
-    elif char in "+-*/^=()<>,;.":
+        res = "eol"
+    elif char in "+-*/^=()<>,;.:":
         res = char
     else:
         res = 'символ не належить алфавіту'
@@ -245,3 +244,13 @@ def indexIdConst(state, lexeme):
             indx = indx[1]
     return indx
 
+
+
+# запуск лексичного аналізатора	
+lex()
+
+# Таблиці: розбору, ідентифікаторів та констант
+print('-'*265)
+print('tableOfSymb:{0}'.format(tableOfSymb))
+print('tableOfId:{0}'.format(tableOfId))
+print('tableOfConst:{0}'.format(tableOfConst))
