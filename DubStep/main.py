@@ -1,5 +1,5 @@
 from lexer import lex
-from lexer import tableOfSymb
+from lexer import tableOfSymb, tableOfConst
 
 
 FSucces = lex()
@@ -153,12 +153,12 @@ def parseIdDeclarationsList():
         return False
 
 # Додати в таблицю змінних нову змінну
-def addIdVar(numLine, lex, lex_type, val):
-    index = tableOfVar.get(lex)
+def addIdVar(numLine, lexeme, lexeme_type, val):
+    index = tableOfVar.get(lexeme)
     if index is None:
         index = len(tableOfVar) + 1
-        tableOfVar[lex] = (index, lex_type, val)
-    else: failParse("повторне оголошення змінної", (numLine, lex, lex_type, val))
+        tableOfVar[lex] = (index, lexeme_type, val)
+    else: failParse("повторне оголошення змінної", (numLine, lexeme, lexeme_type, val))
 
 # Додати дані про тип для змінної в таблицю змінних
 def addTypeForIdVar(type_name):
@@ -168,7 +168,279 @@ def addTypeForIdVar(type_name):
             tableOfVar[id] = (tableOfVar[id][0],type_name,tableOfVar[id][2])
 
 
+# Функція для розбору за правилом для StatementList
+# StatementList = (Statement ';') { Statement ';'}
+# викликає функцію parseStatement() доти,
+# доки parseStatement() повертає True
+def parseStatementList():
+    print('\t parseStatementList():')
+    while parseStatement():
+        pass
+    return True
 
+# Функція для розбору за правилом для Statement
+def parseStatement():
+    print('\t\t parseStatement():')
+    global numSymb
 
+    # прочитаємо поточну лексему в таблиці розбору
+    numLine, lexeme, token = getSymb()
+
+    if token == 'ident':
+        parseId()
+        return True
+
+    elif (lexeme, token) == ('if', 'keyword'):
+        parseIf()
+        return True
+
+    elif (lexeme, token) == ('for', 'keyword'):
+        parseFor()
+        return True
+
+    elif (lexeme, token) == ('write', 'keyword'):
+        parseWrite()
+        return True
+
+    elif (lexeme, token) == ('read', 'keyword'):
+        parseRead()
+        return True
+
+    elif (lexeme, token) == ('end', 'keyword'):
+        return False
+
+    elif (lexeme, token) == ('end.', 'keyword'):
+        return False
+
+    else:
+        # жодна з інструкцій не відповідає
+        # поточній лексемі у таблиці розбору,
+        failParse('невідповідність інструкцій', (numLine, lexeme, tok, 'ident або if або for або write або read або значення для присвоєння'))
+        return False
+
+def getTypeVar(id):
+    try:
+        return tableOfVar[id][1]
+    except KeyError:
+        return "error"
+    
+def initVar(id, val):
+    tableOfVar[id] = (tableOfVar[id][0],tableOfVar[id][1], val)
+
+def getTypeOp(left_type, op, right_type):
+    t_res = "error"
+    t_arith = left_type in ('real', 'int') and right_type in ('real', 'int')
+    if t_arith and op in ("+","-","*","/","^"):
+        t_res = left_type
+    elif t_arith and op in ("<", ">","<=",">=","<>","="):
+        t_res = "bool"
+    return t_res
+
+def getTypeConst(id):
+    try:
+        return tableOfConst[id][0]
+    except KeyError:
+        return 'error'
+    
+def getTypeVar(id):
+    try:
+        return tableOfVar[id][1]
+    except KeyError:
+        return 'error'
+
+def isInitVar(id):
+    if tableOfVar[id][2] is not None:
+        return True
+    else:
+        return False
+
+def parseId():
+    global numSymb
+    print('\t' * 4 + 'parseId():')
+    sign = 1
+
+    # взяти поточну лексему
+    numLine, lexeme, token = getSymb()
+    num_line_ident, id_lexeme, id_token = getSymb()
+    id_type = getTypeVar(lexeme)
+    if id_type == "error":
+        failParse('використання неоголошенної зінної', (numLine, lexeme, token, 'undec_var'))
+        return False
+
+    # встановити номер нової поточної лексеми
+    numSymb += 1
+
+    print('\t' * 5 + 'в рядку {0} - {1}'.format(numLine, (lexeme, token)))
+    numLine, lexeme, token = getSymb()
+    numSymb += 1
+
+    start_n = numSymb
+    end_n = 0
+    if (lexeme, token) == (":=","assign_op"):
+        numLine, lexeme, token = getSymb()
+        if token in ('add_op'):
+            if lexeme == "-":
+                sign = -1
+            numSymb += 1
+
+        is_math = parseExpression(isRes=False)
+        end_n = numSymb if numSymb > end_n and is_math != "error" else end_n
+
+        numSymb = start_n
+        is_bool = parseBoolExpression(isRes=False)
+        end_n = numSymb if numSymb > end_n and is_bool != "error" else end_n
+
+        numSymb = start_n
+        n_numLine, n_lexeme, n_token = getSymb()
+        numSymb += 1
+        is_boolean = "bool" if n_token=="keyword" and n_lexeme in ["true", "false"] else "error"
+        end_n = numSymb if numSymb > end_n and is_boolean else end_n
+        numSymb = end_n
+        if is_math != "error" or is_bool != "error" or is_boolean != "error":
+            #TODO: change to real val
+            if is_boolean != "error":
+                if id_type != is_boolean:
+                    failParse("присвоєння хибного типу",(num_line_ident, id_lexeme, id_type, "bool"))
+                initVar(id_lexeme, 1 * sign)
+                parseToken(";", "punct", "\t" * 7)
+                return True
+            elif is_bool != "error":
+                if id_type != is_bool:
+                    failParse("присвоєння хибного типу",(num_line_ident, id_lexeme, id_type, "bool"))
+                initVar(id_lexeme, 1 * sign)
+                parseToken(";", "punct", "\t" * 7)
+                return True
+            elif is_math != "error":
+                if id_type != is_math:
+                    failParse("присвоєння хибного типу",(num_line_ident, id_lexeme, id_type, is_math))
+                initVar(id_lexeme, 1 * sign)
+                parseToken(";", "punct", "\t" * 7)
+                return
+        return False
+    else:
+        return False
+
+def parseExpression(isRes=True):
+    global numSymb
+    print('\t' * 5 + 'parseExpression():')
+    res_pars = parseTerm(isRes=isRes)
+    if not isRes and res_pars == "error":
+        return "error"
+    F = True
+    # продовжувати розбирати Доданки (Term)
+    # розділені лексемами '+' або '-'
+    while F:
+        numLine, lexeme, token = getSymb()
+        if token in ('add_op'):
+            numSymb += 1
+            print('\t' * 6 + 'в рядку {0} - {1}'.format(numLine, (lexeme, token)))
+            r_res_pars = parseTerm(isRes=isRes)
+            if not isRes and r_res_pars == "error":
+                return "error"
+            res_type = getTypeOp(res_pars, lexeme, r_res_pars)
+            if res_type != "error":
+                res_pars = res_type
+            else:
+                if not isRes:
+                    return "error"
+                else:
+                    failParse("присвоєння хибного типу", (numLine, lexeme, r_res_pars, res_pars))
+        else:
+            F = False
+    return res_pars
+
+def parseTerm(isRes=True):
+    global numSymb
+    print('\t' * 6 + 'parseTerm():')
+    res_pars = parseFactor(isRes=isRes)
+    if not isRes and res_pars == "error":
+        return "error"
+    F = True
+    # продовжувати розбирати Множники (Factor)
+    # розділені лексемами '*' або '/'
+    while F:
+        numLine, lexeme, token = getSymb()
+        if token in ('mult_op, step_op'):
+            numSymb += 1
+            print('\t' * 6 + 'в рядку {0} - {1}'.format(numLine, (lexeme, token)))
+            r_pars_res = parseFactor(isRes=isRes)
+            if r_pars_res == "error" and not isRes:
+                return "error"
+            res_type = getTypeOp(res_pars, lexeme, r_pars_res)
+            if res_type != "error":
+                res_pars = res_type
+            else:
+                if not isRes:
+                    return "error"
+                else:
+                    failParse("присвоєння хибного типу", (numLine, lexeme, r_pars_res, res_pars))
+        else:
+            F = False
+    return res_pars
+
+def parseFactor(isRes=True):
+    global numSymb
+    print('\t' * 7 + 'parseFactor():')
+    numLine, lexeme, token = getSymb()
+    print('\t' * 7 + 'parseFactor():=============рядок: {0}\t (lexeme, token):{1}'.format(numLine, (lexeme, token)))
+
+    # перша і друга альтернативи для Factor
+    # якщо лексема - це константа або ідентифікатор
+    if token in ('int', 'real'):
+        numSymb += 1
+        print('\t' * 7 + 'в рядку {0} - {1}'.format(numLine, (lexeme, token)))
+        return getTypeConst(lexeme)
+
+    elif token == "ident":
+        if getTypeVar(lexeme) != "error":
+            if isInitVar(lexeme):
+                numSymb += 1
+                print('\t' * 7 + 'в рядку {0} - {1}'.format(numLine, (lexeme, token)))
+                return getTypeVar(lexeme)
+            else:
+                failParse('використання не ініціалізованної зінної', (numLine, lexeme, tok, 'undec_var'))
+        else:
+            failParse('використання неоголошенної зінної', (numLine, lexeme, tok, 'undec_var'))
+
+    # третя альтернатива для Factor
+    # якщо лексема - це відкриваюча дужка
+    elif lexeme == '(':
+        numSymb += 1
+        res_pars = parseExpression(isRes=isRes)
+        if not isRes and res_pars == "error":
+            return "error"
+        parseToken(')', 'brackets_op', '\t' * 7)
+        print('\t' * 7 + 'в рядку {0} - {1}'.format(numLine, (lexeme, token)))
+        return res_pars
+    else:
+        if isRes:
+            failParse('невідповідність у Expression.Factor',
+                  (numLine, lexeme, tok, 'rel_op, int, real, ident або \'(\' Expression \')\''))
+        else:
+            return "error"
+
+def parseBoolExpression(isRes=True):
+    global numSymb
+    print('\t' * 4 + 'parseBoolExpression():')
+    res_par = parseExpression(isRes=isRes)
+    if res_par == "error" and not isRes:
+        return "error"
+    numLine, lexeme, token = getSymb()
+    if token in ('rel_op'):
+        numSymb += 1
+        print('\t' * 5 + 'в рядку {0} - {1}'.format(numLine, (lexeme, token)))
+    else:
+        if isRes:
+            failParse('невідповідність у BoolExpression', (numLine, lexeme, token, 'relop'))
+        else:
+            return "error"
+    r_res_par = parseExpression(isRes=isRes)
+    if r_res_par == "error" and not isRes:
+        return "error"
+    res_val = getTypeOp(res_par, lexeme, r_res_par)
+    if res_val == "error":
+        if isRes:
+            failParse("присвоєння хибного типу", (numSymb, lexeme, getTypeVar(lexeme), "bool"))
+    return res_val
 
 parseProgram()
