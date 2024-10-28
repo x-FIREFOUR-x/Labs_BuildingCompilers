@@ -1,6 +1,6 @@
 program counter
 var 
-	count: int;
+	count, a: int;
 	input: real; 
 	sum: int; 
 	flag: bool; 

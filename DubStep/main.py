@@ -10,7 +10,7 @@ print('-'*265)
 
 
 # номер рядка таблиці розбору/лексем/символів ПРОГРАМИ tableOfSymb
-numRow = 1
+numSymb = 1
 curNumLine = 1
 identId = 1
 # довжина таблиці символів програми
@@ -29,11 +29,11 @@ def parseProgram():
     try:
         # перевірити наявність ключового слова 'program' та прочитати ім'я програми
         parseToken('program', 'keyword', '')
-        parseIdentByItself()
+        parseId()
 
         # перевірити наявність ключового слова 'var' та прочитати ім'я зміниих
         parseToken('var', 'keyword', '')
-        parseIdentByItself()
+        parseId()
 
         # перевірити наявність ключового слова 'begin'
         parseToken('begin', 'keyword', '')
@@ -55,24 +55,24 @@ def parseProgram():
 # параметр indent - відступ при виведенні у консоль
 def parseToken(lexeme, token, indent):
     # доступ до поточного рядка таблиці розбору
-    global numRow
+    global numSymb
 
     # якщо всі записи таблиці розбору прочитані,
     # а парсер ще не знайшов якусь лексему
-    if numRow > len_tableOfSymb:
-        failParse('неочікуваний кінець програми', (lexeme, token, numRow))
+    if numSymb > len_tableOfSymb:
+        failParse('неочікуваний кінець програми', (lexeme, token, numSymb))
 
     # прочитати з таблиці розбору
     # номер рядка програми, лексему та її токен
     numLine, lex, tok = getSymb()
 
     # тепер поточним буде наступний рядок таблиці розбору
-    numRow += 1
+    numSymb += 1
 
     # чи збігаються лексема та токен таблиці розбору з заданими
     if (lex, tok) == (lexeme, token):
         # вивести у консоль номер рядка програми та лексему і токен
-        print(indent + 'parseToken: В рядку {0} токен {1}'.format(numLine, (lexeme, token)))
+        print(indent + 'parseToken(): В рядку {0} токен {1}'.format(numLine, (lexeme, token)))
         return True
     else:
         # згенерувати помилку та інформацію про те, що
@@ -85,9 +85,88 @@ def parseToken(lexeme, token, indent):
 # Прочитати з таблиці розбору поточний запис
 # Повертає номер рядка програми, лексему та її токен
 def getSymb():
-    if numRow > len_tableOfSymb:
-        failParse('getSymb(): неочікуваний кінець програми', numRow)
+    if numSymb > len_tableOfSymb:
+        failParse('getSymb(): неочікуваний кінець програми', numSymb)
     # таблиця розбору реалізована у формі словника (dictionary)
-    # tableOfSymb[numRow]={numRow: (numLine, lexeme, token, indexOfVarOrConst)
-    numLine, lexeme, token, _ = tableOfSymb[numRow]
+    # tableOfSymb[numSymb]={numSymb: (numLine, lexeme, token, indexOfVarOrConst)
+    numLine, lexeme, token, _ = tableOfSymb[numSymb]
     return numLine, lexeme, token
+
+
+
+def parseId():
+    global numSymb
+    print('\t' * 4 + 'parseIdentByItself():')
+
+    # взяти поточну лексему
+    numLine, lexeme, token = getSymb()
+
+    # взяти поопередню лексему
+    numSymb -= 1
+    _, prev_lexeme, prev_token = getSymb()
+
+    # встановити номер нової поточної лексеми
+    numSymb += 2
+
+    # ім'я програми
+    print('\t' * 5 + 'в рядку {0} - {1}'.format(numLine, (lexeme, token)))
+    if (prev_lexeme, prev_token) == ("program", "keyword") and token == "id":
+        return True
+
+    if token in ("id"):
+        addIdVar(numLine, lexeme, "undefined", None)
+    else:
+        failParse('parseId(): не очікуванний символ', (numLine, lexeme))
+
+    next_numLine, next_lexeme, next_token = getSymb()
+    numSymb += 1
+    print('\t' * 5 + 'в рядку {0} - {1}'.format(next_numLine, (next_lexeme, next_token)))
+
+        #перевірити перерахунок змінних
+    if (next_lexeme, next_token) == (",","punct"):
+        parseId()
+        return True
+    
+        #перевірити визначення типу
+    elif (next_lexeme, next_token) == (":", "punct"):
+        next_numLine, next_lexeme, next_token = getSymb()
+        numSymb += 1
+        print('\t' * 5 + 'в рядку {0} - {1}'.format(next_numLine, (next_lexeme, next_token)))
+            #перевірити тип змінної
+        if next_token == "keyword" and next_lexeme in ("int", "real", "bool"):
+            addTypeForIdVar(next_lexeme)
+
+                #перевірити кінець визначення змінної
+            parseToken(";","punct","\t"*6)
+
+                #перевірити кінець визначення змінних
+            next_numLine, next_lexeme, next_token = getSymb()
+            if (next_lexeme, next_token) == ("begin","keyword"):
+                return True
+                #перевірити ініціалізацію наступної змінної
+            else:
+                parseId()
+            return True
+        else:
+            failParse('parseId(): невідомий тип', (numLine, next_lexeme, next_token))
+    else:
+        return False
+
+def addIdVar(numLine, lex, lex_type, val):
+    index = tableOfVar.get(lex)
+    if index is None:
+        index = len(tableOfVar) + 1
+        tableOfVar[lex] = (index, lex_type, val)
+    else: failParse("повторне оголошення змінної", (numLine, lex, lex_type, val))
+
+def addTypeForIdVar(type_name):
+    flag = True
+    for id in tableOfVar:
+        if tableOfVar[id][1] == "undefined":
+            tableOfVar[id] = (tableOfVar[id][0],type_name,tableOfVar[id][2])
+
+
+
+
+
+parseProgram()
