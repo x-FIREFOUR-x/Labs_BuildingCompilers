@@ -337,9 +337,9 @@ def parseFactor(isRes=True):
                 print('\t' * 7 + 'в рядку {0} - {1}'.format(numLine, (lexeme, token)))
                 return getTypeVar(lexeme)
             else:
-                failParse('використання не ініціалізованної зінної', (numLine, lexeme, token, 'undec_var'))
+                failParse('використання не ініціалізованної зінної', (numLine, lexeme, token))
         else:
-            failParse('використання неоголошенної зінної', (numLine, lexeme, token, 'undec_var'))
+            failParse('використання неоголошенної зінної', (numLine, lexeme, token))
 
     # третя альтернатива для Factor
     # якщо лексема - це відкриваюча дужка
@@ -435,7 +435,7 @@ def parseAssign():
     num_line_id, id_lexeme, id_token = getSymb()
     id_type = getTypeVar(lexeme)
     if id_type == "error":
-        failParse('використання неоголошенної зінної', (numLine, lexeme, token, 'undec_var'))
+        failParse('використання неоголошенної зінної', (numLine, lexeme, token))
         return False
 
     # встановити номер нової поточної лексеми
@@ -495,8 +495,8 @@ def parseAssign():
 def parseIf():
     global numSymb
     print('\t' * 4 + 'parseIf():')
-    numLine, lex, tok = getSymb()
-    if lex == 'if' and tok == 'keyword':
+    numLine, lexem, token = getSymb()
+    if lexem == 'if' and token == 'keyword':
         numSymb += 1
         parseToken('(', 'brackets_op', '\t' * 5)
         start_numSymb = numSymb
@@ -508,23 +508,23 @@ def parseIf():
         end_numSymb = numSymb if numSymb > end_numSymb else end_numSymb
         numSymb = end_numSymb
         flag = True
-        numLine, lex, tok = getSymb()
+        numLine, lexem, token = getSymb()
         if is_bool=="error" and is_term in ("error", "int", "real"):
-            failParse("невідповідність інструкцій",(numLine, lex, token, "bool expression or bool id"))
+            failParse("невідповідність інструкцій", (numLine, lexem, token, "bool expression or bool id"))
         parseToken(')', 'brackets_op', '\t' * 5)
         parseToken('do', 'keyword', '\t' * 5)
-        if (lex, tok)==("begin","keyword"):
+        if (lexem, token)==("begin","keyword"):
             numSymb += 1
             parseStatementList()
             parseToken('end', 'keyword', '\t' * 5)
         else:
             parseStatement()
-        numLine, lex, tok = getSymb()
-        if (lex, tok)==("else","keyword"):
+        numLine, lexem, token = getSymb()
+        if (lexem, token)==("else","keyword"):
             parseToken('else', 'keyword', '\t' * 5)
             flag = True
-            numLine, lex, tok = getSymb()
-            if (lex, tok) == ("begin", "keyword"):
+            numLine, lexem, token = getSymb()
+            if (lexem, token) == ("begin", "keyword"):
                 numSymb += 1
                 parseStatementList()
                 parseToken('end', 'keyword', '\t' * 5)
@@ -553,7 +553,7 @@ def parseFor():
                 #TODO: change to real val
                 initVar(lexeme_id, 1)
             else:
-                failParse('використання неоголошенної зінної', (numLine, lexeme, token, 'undec_var'))
+                failParse('використання неоголошенної зінної', (numLine, lexeme, token))
                 return False
         else:
             return False
@@ -620,7 +620,7 @@ def parseRead():
                     initVar(lexeme, 1)
                     numSymb += 1
                 else:
-                    failParse('використання неоголошенної зінної', (numLine, lexeme, token, 'undec_var'))
+                    failParse('використання неоголошенної зінної', (numLine, lexeme, token))
                     return False
             else:
                 failParse('невідповідність у Read.ExpressionList', (numLine, lexeme, token, "Id"))
@@ -636,6 +636,87 @@ def parseRead():
     else:
         return False
 
+
+
+# Обробити помилки
+# вивести поточну інформацію та діагностичне повідомлення
+def failParse(str, tuple):
+    if str == 'неочікуваний кінець програми':
+        (lexeme, token, numRow) = tuple
+        print('Parser ERROR: \n\t Неочікуваний кінець програми - в таблиці символів (розбору) немає запису з номером {1}. \n\t Очікувалось - {0}'.format(
+                (lexeme, token), numRow))
+        exit(401)
+
+    elif str == 'getSymb(): неочікуваний кінець програми':
+        numRow = tuple
+        print('Parser ERROR: \n\t Неочікуваний кінець програми - в таблиці символів (розбору) немає запису з номером {0}. \n\t Останній запис - {1}'.format(
+                numRow, tableOfSymb[numRow - 1]))
+        exit(402)
+
+    elif str == 'невідповідність токенів':
+        (numLine, lex, tok, lexeme, token) = tuple
+        print('Parser ERROR: \n\t В рядку {0} неочікуваний елемент ({1},{2}). \n\t Очікувався - ({3},{4}).'.format(
+            numLine, lex, tok, lexeme, token))
+        exit(403)
+
+    elif str == 'невідповідність інструкцій':
+        (numLine, lexeme, token, additional_msg) = tuple
+        print('Parser ERROR: \n\t В рядку {0} неочікуваний елемент ({1},{2}). \n\t Очікувався - {3}.'.format(
+                numLine, lexeme, token, additional_msg))
+        exit(404)
+
+    elif str == 'невідповідність у Expression.Factor':
+        (numLine, lexeme, token, additional_msg) = tuple
+        print('Parser ERROR: \n\t В рядку {0} неочікуваний елемент ({1},{2}). \n\t Очікувався - {3}.'.format(
+                numLine, lexeme, token, additional_msg))
+        exit(405)
+
+    elif str == 'невідповідність у ExpressionList':
+        (numLine, lexeme, token, additional_msg) = tuple
+        print('Parser ERROR: \n\t В рядку {0} неочікуваний елемент ({1},{2}). \n\t Очікувався - {3}.'.format(
+                numLine, lexeme, token, additional_msg))
+        exit(406)
+
+    elif str == 'невідповідність у Read.ExpressionList':
+        (numLine, lexeme, token, additional_msg) = tuple
+        print('Parser ERROR: \n\t В рядку {0} неочікуваний елемент ({1},{2}). \n\t Очікувався - {3}.'.format(
+                numLine, lexeme, token, additional_msg))
+        exit(407)
+
+    elif str == 'невідповідність у BoolExpression':
+        (numLine, lexeme, token, additional_msg) = tuple
+        print('Parser ERROR: \n\t В рядку {0} неочікуваний елемент ({1},{2}). \n\t Очікувався - {3}.'.format(
+                numLine, lexeme, token, additional_msg))
+        exit(408)
+
+    elif str == 'використання неоголошенної зінної':
+        (numLine, lexeme, _) = tuple
+        print('Parser ERROR: \n\t В рядку {0} використання неоголошенної змінної {1}. \n\t'.format(
+                numLine, lex))
+        exit(409)
+
+    elif str == 'використання не ініціалізованної зінної':
+        (numLine, lexeme, _) = tuple
+        print('Parser ERROR: \n\t В рядку {0} використання не ініціалізованної змінної {1}. \n\t'.format(
+                numLine, lex))
+        exit(410)
+
+    elif str == 'присвоєння хибного типу':
+        (numLine, lexeme, type, additional_msg) = tuple
+        print(
+            'Parser ERROR: \n\t В рядку {0} присвоєння хибного типу для змінної {1}. Очікувався тип {2}, а отримано {3} \n\t'.format(numLine, lexeme, type, additional_msg))
+        exit(411)
+
+    elif str == 'повторне оголошення змінної':
+        (numLine, lexeme, type, additional_msg) = tuple
+        print(
+            'Parser ERROR: \n\t В рядку {0} повторне оголошення змінної {1}. \n\t'.format(numLine, lexeme))
+        exit(412)
+
+    else:
+        (numLine, lexeme, token, additional_msg) = tuple
+        print('Parser ERROR: \n\t Щось пішло не так!')
+        exit(400)
 
 
 parseProgram()
