@@ -34,8 +34,8 @@ tokenTable = {
     'and': 'log_op',
     'or': 'log_op',
     'not': 'log_op',
-    '(': 'brackets_op ',
-    ')': 'brackets_op ',
+    '(': 'brackets_op',
+    ')': 'brackets_op',
     '.': 'punct',
     ',': 'punct',
     ';': 'punct',
@@ -50,8 +50,8 @@ tokenTable = {
     # Решту токенів визначаємо не за лексемою, а за заключним станом
 tokStateTable = {
     3: 'id',
-    5: 'intnum',
-    7: 'realnum',
+    5: 'int',
+    7: 'real',
 }
 
 # Діаграма станів
