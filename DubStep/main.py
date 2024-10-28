@@ -23,7 +23,7 @@ tableOfVar={}
 
 
 # Функція для розбору за правилом
-# Program = program var begin StatementList end.
+# Program = program Id var DeclarList begin StatementList end.
 # читає таблицю розбору tableOfSymb
 def parseProgram():
     try:
@@ -31,8 +31,9 @@ def parseProgram():
         parseToken('program', 'keyword', '')
         parseId()
 
-        # перевірити наявність ключового слова 'var' та прочитати ім'я зміниих
+        # перевірити наявність ключового слова 'var'
         parseToken('var', 'keyword', '')
+        # перевірити визначення змінних
         parseId()
 
         # перевірити наявність ключового слова 'begin'
@@ -52,7 +53,6 @@ def parseProgram():
 
 # Функція перевіряє, чи у поточному рядку таблиці розбору
 # зустрілась вказана лексема lexeme з токеном token
-# параметр indent - відступ при виведенні у консоль
 def parseToken(lexeme, token, indent):
     # доступ до поточного рядка таблиці розбору
     global numSymb
@@ -92,6 +92,8 @@ def getSymb():
     return numLine, lexeme, token
 
 
+# Функція для розбору за правилом для StatementList
+# DeclarList = Declaration {';' Declaration }
 def parseId():
     global numSymb
     print('\t' * 4 + 'parseIdentByItself():')
@@ -150,6 +152,7 @@ def parseId():
     else:
         return False
 
+# Додати в таблицю змінних нову змінну
 def addIdVar(numLine, lex, lex_type, val):
     index = tableOfVar.get(lex)
     if index is None:
@@ -157,6 +160,7 @@ def addIdVar(numLine, lex, lex_type, val):
         tableOfVar[lex] = (index, lex_type, val)
     else: failParse("повторне оголошення змінної", (numLine, lex, lex_type, val))
 
+# Додати дані про тип для змінної в таблицю змінних
 def addTypeForIdVar(type_name):
     flag = True
     for id in tableOfVar:
