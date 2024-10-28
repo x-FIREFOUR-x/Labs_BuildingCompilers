@@ -419,6 +419,47 @@ def parseIf():
     else:
         return False
 
+def parseExpressionList():
+    global numSymb
+    print('\t' * 4 + 'parseExpressionList():')
+    parseToken("(","brackets_op","\t"*7)
+    flag = True
+    numSymb_last = 0
+    numLine, lexeme, token = getSymb()
+    expr_flag = False
+    while flag:
+        numSymb_loc = numSymb
+
+        isBoolExp = parseBoolExpression(isRes=False)
+        numSymb_last = numSymb if numSymb_last < numSymb else numSymb_last
+        numSymb = numSymb_loc
+
+        isMathExpr = parseExpression(isRes=False)
+        numSymb_last = numSymb if numSymb_last < numSymb else numSymb_last
+        numSymb = numSymb_loc
+
+        isTerm = parseTerm(isRes=False)
+        numSymb_last = numSymb if numSymb_last < numSymb else numSymb_last
+        numSymb = numSymb_last
+
+        if isBoolExp != "error" or  isMathExpr != "error":
+            numLine, lexeme, token = getSymb()
+            if lexeme == ",":
+                numSymb +=1
+            else:
+                flag = False
+        else:
+            if isTerm != "error":
+                numLine, lexeme, token = getSymb()
+                if lexeme == ",":
+                    numSymb += 1
+                else:
+                    flag = False
+            else:
+                failParse('невідповідність у ExpressionList',
+                      (numLine, lexeme, token, "Expression, BoolExpr, Ident"))
+    parseToken(")", "brackets_op", "\t" * 7)
+
 
 def parseId():
     global numSymb
@@ -583,6 +624,16 @@ def parseFor():
     else:
         return False
 
-
+def parseWrite():
+    global numSymb
+    print('\t' * 4 + 'parseWrite():')
+    numLine, lexeme, token = getSymb()
+    if (lexeme, token) == ("write", "keyword"):
+        numSymb += 1
+        parseExpressionList()
+        parseToken(";", "punct", "\t" * 5)
+        return True
+    else:
+        return False
 
 parseProgram()
