@@ -443,4 +443,47 @@ def parseBoolExpression(isRes=True):
             failParse("присвоєння хибного типу", (numSymb, lexeme, getTypeVar(lexeme), "bool"))
     return res_val
 
+def parseIf():
+    global numSymb
+    print('\t' * 4 + 'parseIf():')
+    numLine, lex, tok = getSymb()
+    if lex == 'if' and tok == 'keyword':
+        numSymb += 1
+        parseToken('(', 'brackets_op', '\t' * 5)
+        start_numSymb = numSymb
+        end_numSymb = 0
+        is_bool = parseBoolExpression(isRes=False)
+        end_numSymb = numSymb
+        numSymb = start_numSymb
+        is_term = parseExpression(isRes=False)
+        end_numSymb = numSymb if numSymb > end_numSymb else end_numSymb
+        numSymb = end_numSymb
+        flag = True
+        numLine, lex, tok = getSymb()
+        if is_bool=="error" and is_term in ("error", "int", "real"):
+            failParse("невідповідність інструкцій",(numLine, lex, tok, "bool expression or bool ident"))
+        parseToken(')', 'brackets_op', '\t' * 5)
+        parseToken('do', 'keyword', '\t' * 5)
+        if (lex, tok)==("begin","keyword"):
+            numSymb += 1
+            parseStatementList()
+            parseToken('end', 'keyword', '\t' * 5)
+        else:
+            parseStatement()
+        numLine, lex, tok = getSymb()
+        if (lex, tok)==("else","keyword"):
+            parseToken('else', 'keyword', '\t' * 5)
+            flag = True
+            numLine, lex, tok = getSymb()
+            if (lex, tok) == ("begin", "keyword"):
+                numSymb += 1
+                parseStatementList()
+                parseToken('end', 'keyword', '\t' * 5)
+            else:
+                parseStatement()
+        return True
+    else:
+        return False
+
+
 parseProgram()
