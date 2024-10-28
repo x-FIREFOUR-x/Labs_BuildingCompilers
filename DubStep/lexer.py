@@ -91,14 +91,12 @@ tableOfSymb = {}  # Таблиця символів програми (табли
 
 state = initState  # поточний стан
 
-f = open('test.ds', 'r')
-sourceCode = f.read()
-f.close()
+
 
 # FSuccess - ознака успішності розбору
 FSuccess = ('Lexer', False)
 
-lenCode = len(sourceCode) - 1  # номер останнього символа у файлі з кодом програми
+
 numLine = 1  # лексичний аналіз починаємо з першого рядка
 numChar = -1  # з першого символа (в Python'і нумерація - з 0)
 char = ''  # ще не брали жодного символа
@@ -106,8 +104,15 @@ lexeme = ''  # ще не починали розпізнавати лексем�
 
 
 
-def lex():
-    global state, numLine, char, lexeme, numChar, FSuccess
+def lex(file_path):
+    global state, numLine, char, lexeme, numChar, FSuccess, sourceCode
+    f = open(file_path, 'r')
+    sourceCode = f.read()
+    f.close()
+
+    lenCode = len(sourceCode) - 1  # номер останнього символа у файлі з кодом програми
+
+    
     try:
         while numChar < lenCode:
             char = nextChar()  # прочитати наступний символ

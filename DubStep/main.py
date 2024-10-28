@@ -1,9 +1,8 @@
 from lexer import lex
 from lexer import tableOfSymb, tableOfConst
 
-
-
-FSucces = lex()
+path_file = 'test.ds'
+FSucces = lex(path_file)
 
 print('-'*265)
 print('tableOfSymb:{0}'.format(tableOfSymb))
