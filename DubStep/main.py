@@ -29,12 +29,12 @@ def parseProgram():
     try:
         # перевірити наявність ключового слова 'program' та прочитати ім'я програми
         parseToken('program', 'keyword', '')
-        parseId()
+        parseIdDeclarationsList()
 
         # перевірити наявність ключового слова 'var'
         parseToken('var', 'keyword', '')
         # перевірити визначення змінних
-        parseId()
+        parseIdDeclarationsList()
 
         # перевірити наявність ключового слова 'begin'
         parseToken('begin', 'keyword', '')
@@ -94,9 +94,9 @@ def getSymb():
 
 # Функція для розбору за правилом для StatementList
 # DeclarList = Declaration {';' Declaration }
-def parseId():
+def parseIdDeclarationsList():
     global numSymb
-    print('\t' * 4 + 'parseIdentByItself():')
+    print('\t' * 4 + 'parseIdDeclarationsList():')
 
     # взяти поточну лексему
     numLine, lexeme, token = getSymb()
@@ -116,7 +116,7 @@ def parseId():
     if token in ("id"):
         addIdVar(numLine, lexeme, "undefined", None)
     else:
-        failParse('parseId(): не очікуванний символ', (numLine, lexeme))
+        failParse('parseIdDeclarationsList(): не очікуванний символ', (numLine, lexeme))
 
     next_numLine, next_lexeme, next_token = getSymb()
     numSymb += 1
@@ -124,7 +124,7 @@ def parseId():
 
         #перевірити перерахунок змінних
     if (next_lexeme, next_token) == (",","punct"):
-        parseId()
+        parseIdDeclarationsList()
         return True
     
         #перевірити визначення типу
@@ -145,10 +145,10 @@ def parseId():
                 return True
                 #перевірити ініціалізацію наступної змінної
             else:
-                parseId()
+                parseIdDeclarationsList()
             return True
         else:
-            failParse('parseId(): невідомий тип', (numLine, next_lexeme, next_token))
+            failParse('parseIdDeclarationsList(): невідомий тип', (numLine, next_lexeme, next_token))
     else:
         return False
 
