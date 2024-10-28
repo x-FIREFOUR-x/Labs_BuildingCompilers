@@ -186,7 +186,7 @@ def parseStatement():
     # прочитаємо поточну лексему в таблиці розбору
     numLine, lexeme, token = getSymb()
 
-    if token == 'ident':
+    if token == 'id':
         parseId()
         return True
 
@@ -215,7 +215,7 @@ def parseStatement():
     else:
         # жодна з інструкцій не відповідає
         # поточній лексемі у таблиці розбору,
-        failParse('невідповідність інструкцій', (numLine, lexeme, tok, 'ident або if або for або write або read або значення для присвоєння'))
+        failParse('невідповідність інструкцій', (numLine, lexeme, tok, 'id або if або for або write або read або значення для присвоєння'))
         return False
 
 def getTypeVar(id):
@@ -325,7 +325,7 @@ def parseFactor(isRes=True):
         print('\t' * 7 + 'в рядку {0} - {1}'.format(numLine, (lexeme, token)))
         return getTypeConst(lexeme)
 
-    elif token == "ident":
+    elif token == "id":
         if getTypeVar(lexeme) != "error":
             if isInitVar(lexeme):
                 numSymb += 1
@@ -349,7 +349,7 @@ def parseFactor(isRes=True):
     else:
         if isRes:
             failParse('невідповідність у Expression.Factor',
-                  (numLine, lexeme, tok, 'rel_op, int, real, ident або \'(\' Expression \')\''))
+                  (numLine, lexeme, tok, 'rel_op, int, real, id або \'(\' Expression \')\''))
         else:
             return "error"
 
@@ -395,7 +395,7 @@ def parseIf():
         flag = True
         numLine, lex, tok = getSymb()
         if is_bool=="error" and is_term in ("error", "int", "real"):
-            failParse("невідповідність інструкцій",(numLine, lex, tok, "bool expression or bool ident"))
+            failParse("невідповідність інструкцій",(numLine, lex, tok, "bool expression or bool id"))
         parseToken(')', 'brackets_op', '\t' * 5)
         parseToken('do', 'keyword', '\t' * 5)
         if (lex, tok)==("begin","keyword"):
@@ -457,7 +457,7 @@ def parseExpressionList():
                     flag = False
             else:
                 failParse('невідповідність у ExpressionList',
-                      (numLine, lexeme, token, "Expression, BoolExpr, Ident"))
+                      (numLine, lexeme, token, "Expression, BoolExpr, Id"))
     parseToken(")", "brackets_op", "\t" * 7)
 
 
@@ -468,7 +468,7 @@ def parseId():
 
     # взяти поточну лексему
     numLine, lexeme, token = getSymb()
-    num_line_ident, id_lexeme, id_token = getSymb()
+    num_line_id, id_lexeme, id_token = getSymb()
     id_type = getTypeVar(lexeme)
     if id_type == "error":
         failParse('використання неоголошенної зінної', (numLine, lexeme, token, 'undec_var'))
@@ -507,19 +507,19 @@ def parseId():
             #TODO: change to real val
             if is_boolean != "error":
                 if id_type != is_boolean:
-                    failParse("присвоєння хибного типу",(num_line_ident, id_lexeme, id_type, "bool"))
+                    failParse("присвоєння хибного типу",(num_line_id, id_lexeme, id_type, "bool"))
                 initVar(id_lexeme, 1 * sign)
                 parseToken(";", "punct", "\t" * 7)
                 return True
             elif is_bool != "error":
                 if id_type != is_bool:
-                    failParse("присвоєння хибного типу",(num_line_ident, id_lexeme, id_type, "bool"))
+                    failParse("присвоєння хибного типу",(num_line_id, id_lexeme, id_type, "bool"))
                 initVar(id_lexeme, 1 * sign)
                 parseToken(";", "punct", "\t" * 7)
                 return True
             elif is_math != "error":
                 if id_type != is_math:
-                    failParse("присвоєння хибного типу",(num_line_ident, id_lexeme, id_type, is_math))
+                    failParse("присвоєння хибного типу",(num_line_id, id_lexeme, id_type, is_math))
                 initVar(id_lexeme, 1 * sign)
                 parseToken(";", "punct", "\t" * 7)
                 return
@@ -545,7 +545,7 @@ def parseIf():
         flag = True
         numLine, lex, tok = getSymb()
         if is_bool=="error" and is_term in ("error", "int", "real"):
-            failParse("невідповідність інструкцій",(numLine, lex, tok, "bool expression or bool ident"))
+            failParse("невідповідність інструкцій",(numLine, lex, tok, "bool expression or bool id"))
         parseToken(')', 'brackets_op', '\t' * 5)
         parseToken('do', 'keyword', '\t' * 5)
         if (lex, tok)==("begin","keyword"):
@@ -577,7 +577,7 @@ def parseFor():
         numSymb += 1
         numLine, lexeme, token = getSymb()
         numLine_id, lexeme_id, token_id = getSymb()
-        if token == "ident":
+        if token == "id":
             if getTypeVar(lexeme) != "error":
                 numSymb += 1
                 parseToken(':=', 'assign_op', '\t' * 5)
@@ -635,5 +635,38 @@ def parseWrite():
         return True
     else:
         return False
+
+def parseRead():
+    global numSymb
+    print('\t' * 4 + 'parseRead():')
+    numLine, lexeme, token = getSymb()
+    if (lexeme, token) == ("read", "keyword"):
+        numSymb += 1
+        parseToken("(", "brackets_op", "\t" * 5)
+        flag = True
+        while flag:
+            numLine, lexeme, token = getSymb()
+            if token == "id":
+                if getTypeVar(lexeme) != "error":
+                    #TODO: switch to real val (for now it will be 1)
+                    initVar(lex, 1)
+                    numSymb += 1
+                else:
+                    failParse('використання неоголошенної зінної', (numLine, lexeme, token, 'undec_var'))
+                    return False
+            else:
+                failParse('невідповідність у Read.ExpressionList', (numLine, lexeme, token, "Id"))
+                return False
+            numLine, lexeme, token = getSymb()
+            if (lexeme, token) == (",","punct"):
+                numSymb += 1
+            else:
+                flag = False
+        parseToken(")", "brackets_op", "\t" * 5)
+        parseToken(";", "punct", "\t" * 5)
+        return True
+    else:
+        return False
+
 
 parseProgram()
