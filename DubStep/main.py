@@ -2,6 +2,7 @@ from lexer import lex
 from lexer import tableOfSymb, tableOfConst
 
 
+
 FSucces = lex()
 
 print('-'*265)
@@ -51,6 +52,7 @@ def parseProgram():
         print('Parser: Аварійне завершення програми з кодом {0}'.format(e))
 
 
+
 # Функція перевіряє, чи у поточному рядку таблиці розбору
 # зустрілась вказана лексема lexeme з токеном token
 def parseToken(lexeme, token, indent):
@@ -90,6 +92,7 @@ def getSymb():
     # tableOfSymb[numSymb]={numSymb: (numLine, lexeme, token, indexOfVarOrConst)
     numLine, lexeme, token, _ = tableOfSymb[numSymb]
     return numLine, lexeme, token
+
 
 
 # Функція для розбору за правилом для StatementList
@@ -168,6 +171,7 @@ def addTypeForIdVar(type_name):
             tableOfVar[id] = (tableOfVar[id][0],type_name,tableOfVar[id][2])
 
 
+
 # Функція для розбору за правилом для StatementList
 # StatementList = (Statement ';') { Statement ';'}
 # викликає функцію parseStatement() доти,
@@ -187,7 +191,7 @@ def parseStatement():
     numLine, lexeme, token = getSymb()
 
     if token == 'id':
-        parseId()
+        parseAssign()
         return True
 
     elif (lexeme, token) == ('if', 'keyword'):
@@ -217,6 +221,7 @@ def parseStatement():
         # поточній лексемі у таблиці розбору,
         failParse('невідповідність інструкцій', (numLine, lexeme, token, 'id або if або for або write або read або значення для присвоєння'))
         return False
+
 
 def getTypeVar(id):
     try:
@@ -377,48 +382,6 @@ def parseBoolExpression(isRes=True):
             failParse("присвоєння хибного типу", (numSymb, lexeme, getTypeVar(lexeme), "bool"))
     return res_val
 
-def parseIf():
-    global numSymb
-    print('\t' * 4 + 'parseIf():')
-    numLine, lex, tok = getSymb()
-    if lex == 'if' and tok == 'keyword':
-        numSymb += 1
-        parseToken('(', 'brackets_op', '\t' * 5)
-        start_numSymb = numSymb
-        end_numSymb = 0
-        is_bool = parseBoolExpression(isRes=False)
-        end_numSymb = numSymb
-        numSymb = start_numSymb
-        is_term = parseExpression(isRes=False)
-        end_numSymb = numSymb if numSymb > end_numSymb else end_numSymb
-        numSymb = end_numSymb
-        flag = True
-        numLine, lex, tok = getSymb()
-        if is_bool=="error" and is_term in ("error", "int", "real"):
-            failParse("невідповідність інструкцій",(numLine, lex, token, "bool expression or bool id"))
-        parseToken(')', 'brackets_op', '\t' * 5)
-        parseToken('do', 'keyword', '\t' * 5)
-        if (lex, tok)==("begin","keyword"):
-            numSymb += 1
-            parseStatementList()
-            parseToken('end', 'keyword', '\t' * 5)
-        else:
-            parseStatement()
-        numLine, lex, tok = getSymb()
-        if (lex, tok)==("else","keyword"):
-            parseToken('else', 'keyword', '\t' * 5)
-            flag = True
-            numLine, lex, tok = getSymb()
-            if (lex, tok) == ("begin", "keyword"):
-                numSymb += 1
-                parseStatementList()
-                parseToken('end', 'keyword', '\t' * 5)
-            else:
-                parseStatement()
-        return True
-    else:
-        return False
-
 def parseExpressionList():
     global numSymb
     print('\t' * 4 + 'parseExpressionList():')
@@ -461,9 +424,10 @@ def parseExpressionList():
     parseToken(")", "brackets_op", "\t" * 7)
 
 
-def parseId():
+# Функція для розбору Statement за правилом для Assign
+def parseAssign():
     global numSymb
-    print('\t' * 4 + 'parseId():')
+    print('\t' * 4 + 'parseAssign():')
     sign = 1
 
     # взяти поточну лексему
@@ -527,6 +491,7 @@ def parseId():
     else:
         return False
 
+# Функція для розбору Statement за правилом для IfStatement
 def parseIf():
     global numSymb
     print('\t' * 4 + 'parseIf():')
@@ -569,6 +534,7 @@ def parseIf():
     else:
         return False
 
+# Функція для розбору Statement за правилом для ForStatement
 def parseFor():
     global numSymb
     print('\t' * 4 + 'parseFor():')
@@ -624,6 +590,7 @@ def parseFor():
     else:
         return False
 
+# Функція для розбору Statement за правилом для Outp
 def parseWrite():
     global numSymb
     print('\t' * 4 + 'parseWrite():')
@@ -636,6 +603,7 @@ def parseWrite():
     else:
         return False
 
+# Функція для розбору Statement за правилом для Inp
 def parseRead():
     global numSymb
     print('\t' * 4 + 'parseRead():')
@@ -667,6 +635,7 @@ def parseRead():
         return True
     else:
         return False
+
 
 
 parseProgram()
