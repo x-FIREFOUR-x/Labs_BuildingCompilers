@@ -81,7 +81,6 @@ def parseToken(lexeme, token, indent):
         failParse('невідповідність токенів', (numLine, lex, tok, lexeme, token))
         return False
     
-
 # Прочитати з таблиці розбору поточний запис
 # Повертає номер рядка програми, лексему та її токен
 def getSymb():
@@ -91,7 +90,6 @@ def getSymb():
     # tableOfSymb[numSymb]={numSymb: (numLine, lexeme, token, indexOfVarOrConst)
     numLine, lexeme, token, _ = tableOfSymb[numSymb]
     return numLine, lexeme, token
-
 
 
 def parseId():
