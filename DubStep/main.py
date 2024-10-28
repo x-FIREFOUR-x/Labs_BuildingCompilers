@@ -697,7 +697,7 @@ def failParse(str, tuple):
     elif str == 'використання не ініціалізованної зінної':
         (numLine, lexeme, _) = tuple
         print('Parser ERROR: \n\t В рядку {0} використання не ініціалізованної змінної {1}. \n\t'.format(
-                numLine, lex))
+                numLine, lexeme))
         exit(410)
 
     elif str == 'присвоєння хибного типу':
