@@ -254,72 +254,6 @@ def isInitVar(id):
     else:
         return False
 
-def parseId():
-    global numSymb
-    print('\t' * 4 + 'parseId():')
-    sign = 1
-
-    # взяти поточну лексему
-    numLine, lexeme, token = getSymb()
-    num_line_ident, id_lexeme, id_token = getSymb()
-    id_type = getTypeVar(lexeme)
-    if id_type == "error":
-        failParse('використання неоголошенної зінної', (numLine, lexeme, token, 'undec_var'))
-        return False
-
-    # встановити номер нової поточної лексеми
-    numSymb += 1
-
-    print('\t' * 5 + 'в рядку {0} - {1}'.format(numLine, (lexeme, token)))
-    numLine, lexeme, token = getSymb()
-    numSymb += 1
-
-    start_n = numSymb
-    end_n = 0
-    if (lexeme, token) == (":=","assign_op"):
-        numLine, lexeme, token = getSymb()
-        if token in ('add_op'):
-            if lexeme == "-":
-                sign = -1
-            numSymb += 1
-
-        is_math = parseExpression(isRes=False)
-        end_n = numSymb if numSymb > end_n and is_math != "error" else end_n
-
-        numSymb = start_n
-        is_bool = parseBoolExpression(isRes=False)
-        end_n = numSymb if numSymb > end_n and is_bool != "error" else end_n
-
-        numSymb = start_n
-        n_numLine, n_lexeme, n_token = getSymb()
-        numSymb += 1
-        is_boolean = "bool" if n_token=="keyword" and n_lexeme in ["true", "false"] else "error"
-        end_n = numSymb if numSymb > end_n and is_boolean else end_n
-        numSymb = end_n
-        if is_math != "error" or is_bool != "error" or is_boolean != "error":
-            #TODO: change to real val
-            if is_boolean != "error":
-                if id_type != is_boolean:
-                    failParse("присвоєння хибного типу",(num_line_ident, id_lexeme, id_type, "bool"))
-                initVar(id_lexeme, 1 * sign)
-                parseToken(";", "punct", "\t" * 7)
-                return True
-            elif is_bool != "error":
-                if id_type != is_bool:
-                    failParse("присвоєння хибного типу",(num_line_ident, id_lexeme, id_type, "bool"))
-                initVar(id_lexeme, 1 * sign)
-                parseToken(";", "punct", "\t" * 7)
-                return True
-            elif is_math != "error":
-                if id_type != is_math:
-                    failParse("присвоєння хибного типу",(num_line_ident, id_lexeme, id_type, is_math))
-                initVar(id_lexeme, 1 * sign)
-                parseToken(";", "punct", "\t" * 7)
-                return
-        return False
-    else:
-        return False
-
 def parseExpression(isRes=True):
     global numSymb
     print('\t' * 5 + 'parseExpression():')
@@ -484,6 +418,171 @@ def parseIf():
         return True
     else:
         return False
+
+
+def parseId():
+    global numSymb
+    print('\t' * 4 + 'parseId():')
+    sign = 1
+
+    # взяти поточну лексему
+    numLine, lexeme, token = getSymb()
+    num_line_ident, id_lexeme, id_token = getSymb()
+    id_type = getTypeVar(lexeme)
+    if id_type == "error":
+        failParse('використання неоголошенної зінної', (numLine, lexeme, token, 'undec_var'))
+        return False
+
+    # встановити номер нової поточної лексеми
+    numSymb += 1
+
+    print('\t' * 5 + 'в рядку {0} - {1}'.format(numLine, (lexeme, token)))
+    numLine, lexeme, token = getSymb()
+    numSymb += 1
+
+    start_n = numSymb
+    end_n = 0
+    if (lexeme, token) == (":=","assign_op"):
+        numLine, lexeme, token = getSymb()
+        if token in ('add_op'):
+            if lexeme == "-":
+                sign = -1
+            numSymb += 1
+
+        is_math = parseExpression(isRes=False)
+        end_n = numSymb if numSymb > end_n and is_math != "error" else end_n
+
+        numSymb = start_n
+        is_bool = parseBoolExpression(isRes=False)
+        end_n = numSymb if numSymb > end_n and is_bool != "error" else end_n
+
+        numSymb = start_n
+        n_numLine, n_lexeme, n_token = getSymb()
+        numSymb += 1
+        is_boolean = "bool" if n_token=="keyword" and n_lexeme in ["true", "false"] else "error"
+        end_n = numSymb if numSymb > end_n and is_boolean else end_n
+        numSymb = end_n
+        if is_math != "error" or is_bool != "error" or is_boolean != "error":
+            #TODO: change to real val
+            if is_boolean != "error":
+                if id_type != is_boolean:
+                    failParse("присвоєння хибного типу",(num_line_ident, id_lexeme, id_type, "bool"))
+                initVar(id_lexeme, 1 * sign)
+                parseToken(";", "punct", "\t" * 7)
+                return True
+            elif is_bool != "error":
+                if id_type != is_bool:
+                    failParse("присвоєння хибного типу",(num_line_ident, id_lexeme, id_type, "bool"))
+                initVar(id_lexeme, 1 * sign)
+                parseToken(";", "punct", "\t" * 7)
+                return True
+            elif is_math != "error":
+                if id_type != is_math:
+                    failParse("присвоєння хибного типу",(num_line_ident, id_lexeme, id_type, is_math))
+                initVar(id_lexeme, 1 * sign)
+                parseToken(";", "punct", "\t" * 7)
+                return
+        return False
+    else:
+        return False
+
+def parseIf():
+    global numSymb
+    print('\t' * 4 + 'parseIf():')
+    numLine, lex, tok = getSymb()
+    if lex == 'if' and tok == 'keyword':
+        numSymb += 1
+        parseToken('(', 'brackets_op', '\t' * 5)
+        start_numSymb = numSymb
+        end_numSymb = 0
+        is_bool = parseBoolExpression(isRes=False)
+        end_numSymb = numSymb
+        numSymb = start_numSymb
+        is_term = parseExpression(isRes=False)
+        end_numSymb = numSymb if numSymb > end_numSymb else end_numSymb
+        numSymb = end_numSymb
+        flag = True
+        numLine, lex, tok = getSymb()
+        if is_bool=="error" and is_term in ("error", "int", "real"):
+            failParse("невідповідність інструкцій",(numLine, lex, tok, "bool expression or bool ident"))
+        parseToken(')', 'brackets_op', '\t' * 5)
+        parseToken('do', 'keyword', '\t' * 5)
+        if (lex, tok)==("begin","keyword"):
+            numSymb += 1
+            parseStatementList()
+            parseToken('end', 'keyword', '\t' * 5)
+        else:
+            parseStatement()
+        numLine, lex, tok = getSymb()
+        if (lex, tok)==("else","keyword"):
+            parseToken('else', 'keyword', '\t' * 5)
+            flag = True
+            numLine, lex, tok = getSymb()
+            if (lex, tok) == ("begin", "keyword"):
+                numSymb += 1
+                parseStatementList()
+                parseToken('end', 'keyword', '\t' * 5)
+            else:
+                parseStatement()
+        return True
+    else:
+        return False
+
+def parseFor():
+    global numSymb
+    print('\t' * 4 + 'parseFor():')
+    numLine, lexeme, token = getSymb()
+    if lexeme == 'for' and token == 'keyword':
+        numSymb += 1
+        numLine, lexeme, token = getSymb()
+        numLine_id, lexeme_id, token_id = getSymb()
+        if token == "ident":
+            if getTypeVar(lexeme) != "error":
+                numSymb += 1
+                parseToken(':=', 'assign_op', '\t' * 5)
+                type = parseExpression()
+                if type != "int":
+                    failParse('присвоєння хибного типу', (numLine, lexeme, type, 'int'))
+                #TODO: change to real val
+                initVar(lexeme_id, 1)
+            else:
+                failParse('використання неоголошенної зінної', (numLine, lexeme, token, 'undec_var'))
+                return False
+        else:
+            return False
+
+        _, lexeme, token = getSymb()
+        if (lexeme, token) == ("down","keyword"):
+            numSymb += 1
+        parseToken('to', 'keyword', '\t' * 5)
+        numLine, lexeme, token = getSymb()
+        type = parseExpression()
+        if type != "int":
+            failParse('присвоєння хибного типу', (numLine, lexeme, type, 'int'))
+        parseToken('do', 'keyword', '\t' * 5)
+        flag = True
+        numLine, lexeme, token = getSymb()
+        if (lexeme, token) == ("begin", "keyword"):
+            numSymb += 1
+            parseStatementList()
+            parseToken('end', 'keyword', '\t' * 5)
+        else:
+            parseStatement()
+        numLine, lexeme, token = getSymb()
+        if (lexeme, token) == ("else", "keyword"):
+            parseToken('else', 'keyword', '\t' * 5)
+            flag = True
+            numLine, lexeme, token = getSymb()
+            if (lexeme, token) == ("begin", "keyword"):
+                numSymb += 1
+                parseStatementList()
+                parseToken('end', 'keyword', '\t' * 5)
+            else:
+                parseStatement()
+        return True
+    else:
+        return False
+
 
 
 parseProgram()
