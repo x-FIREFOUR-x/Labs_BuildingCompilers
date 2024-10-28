@@ -691,7 +691,7 @@ def failParse(str, tuple):
     elif str == 'використання неоголошенної зінної':
         (numLine, lexeme, _) = tuple
         print('Parser ERROR: \n\t В рядку {0} використання неоголошенної змінної {1}. \n\t'.format(
-                numLine, lex))
+                numLine, lexeme))
         exit(409)
 
     elif str == 'використання не ініціалізованної зінної':
