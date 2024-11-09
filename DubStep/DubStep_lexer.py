@@ -140,7 +140,7 @@ def processing():
         numLine += 1
         lexeme = ''
         state = initState
-    if state in (3, 5, 7):  # id, keyword; int; float
+    if state in (3, 5, 7):  # id, keyword; int; real
         token = getToken(state, lexeme)
         if token != 'keyword':
             index = indexIdConst(state, lexeme)

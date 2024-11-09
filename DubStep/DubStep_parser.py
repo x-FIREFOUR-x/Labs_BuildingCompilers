@@ -11,7 +11,9 @@ identId = 1
 len_tableOfSymb = 0
 
 tableOfVar={}
-
+tableOfLbl={}
+postfCode = []
+codeIl = []
 
 # Функція для розбору за правилом
 # Program = program Id var DeclarList begin StatementList end.
@@ -42,7 +44,7 @@ def parseProgram():
 
         # повідомити про синтаксичну коректність програми
         print('Parser: Синтаксичний та семантичний аналіз завершився успішно')
-        
+        codeIl.append("ret")
         FSuccess = True
         return FSuccess
     
@@ -262,7 +264,7 @@ def isInitVar(id):
         return False
 
 def parseExpression(isRes=True):
-    global numSymb
+    global numSymb, postfCode
     print('\t' * 5 + 'parseExpression():')
     res_pars = parseTerm(isRes=isRes)
     if not isRes and res_pars == "error":
@@ -272,6 +274,7 @@ def parseExpression(isRes=True):
     # розділені лексемами '+' або '-'
     while F:
         numLine, lexeme, token = getSymb()
+        sign_lex = lexeme
         if token in ('add_op'):
             numSymb += 1
             print('\t' * 6 + 'в рядку {0} - {1}'.format(numLine, (lexeme, token)))
@@ -286,6 +289,9 @@ def parseExpression(isRes=True):
                     return "error"
                 else:
                     failParse("присвоєння хибного типу", (numLine, lexeme, r_res_pars, res_pars))
+            if isRes:
+                postfCode.append((sign_lex, "add_op"))
+                postfixCLR_codeGen(sign_lex, 0)
         else:
             F = False
     return res_pars
@@ -301,6 +307,8 @@ def parseTerm(isRes=True):
     # розділені лексемами '*' або '/'
     while F:
         numLine, lexeme, token = getSymb()
+        sign_tok = token
+        sign_lex = lexeme
         if token in ('mult_op, step_op'):
             numSymb += 1
             print('\t' * 6 + 'в рядку {0} - {1}'.format(numLine, (lexeme, token)))
@@ -315,11 +323,14 @@ def parseTerm(isRes=True):
                     return "error"
                 else:
                     failParse("присвоєння хибного типу", (numLine, lexeme, r_pars_res, res_pars))
+            if isRes:
+                postfCode.append((sign_lex, sign_tok))
+                postfixCLR_codeGen(sign_lex, 0)
         else:
             F = False
     return res_pars
 
-def parseFactor(isRes=True):
+def parseFactor(isRes=True, isFirstMinus=True):
     global numSymb
     print('\t' * 7 + 'parseFactor():')
     numLine, lexeme, token = getSymb()
@@ -330,13 +341,35 @@ def parseFactor(isRes=True):
     if token in ('int', 'real'):
         numSymb += 1
         print('\t' * 7 + 'в рядку {0} - {1}'.format(numLine, (lexeme, token)))
+        if isRes:
+            postfCode.append((lexeme, token))
+            postfixCLR_codeGen(token, lexeme)
         return getTypeConst(lexeme)
+    
+    elif token in ('add_op'):
+        if not isFirstMinus:
+            failParse("присвоєння хибного типу", (numLine, lexeme, "подвійний мінус", "мінус лише один"))
+        numLine += 1
+        print('\t' * 7 + 'в рядку {0} - {1}'.format(numLine, (lexeme, token)))
+        res_pars = parseFactor(isRes=isRes, isFirstMinus=False)
+        if isRes:
+            lex_t = -1.0
+            lex_t = -1 if res_pars=="int" else lex_t
+            postfCode.append((lex_t, res_pars))
+            postfixCLR_codeGen(res_pars, lex_t)
+            postfCode.append(("*", "mult_op"))
+            postfixCLR_codeGen("*", 0)
+        return res_pars
+
 
     elif token == "id":
         if getTypeVar(lexeme) != "error":
             if isInitVar(lexeme):
                 numSymb += 1
                 print('\t' * 7 + 'в рядку {0} - {1}'.format(numLine, (lexeme, token)))
+                if isRes:
+                    postfCode.append((lexeme, "r-val"))
+                    postfixCLR_codeGen("r-val", lexeme)
                 return getTypeVar(lexeme)
             else:
                 failParse('використання не ініціалізованної зінної', (numLine, lexeme, token))
@@ -361,7 +394,9 @@ def parseFactor(isRes=True):
             return "error"
 
 def parseBoolExpression(isRes=True):
-    global numSymb
+    global numSymb, postfCode
+    rel_tok = ""
+    rel_lex = ""
     print('\t' * 4 + 'parseBoolExpression():')
     res_par = parseExpression(isRes=isRes)
     if res_par == "error" and not isRes:
@@ -370,6 +405,8 @@ def parseBoolExpression(isRes=True):
     if token in ('rel_op'):
         numSymb += 1
         print('\t' * 5 + 'в рядку {0} - {1}'.format(numLine, (lexeme, token)))
+        rel_tok = token
+        rel_lex = lexeme
     else:
         if isRes:
             failParse('невідповідність у BoolExpression', (numLine, lexeme, token, 'relop'))
@@ -382,6 +419,9 @@ def parseBoolExpression(isRes=True):
     if res_val == "error":
         if isRes:
             failParse("присвоєння хибного типу", (numSymb, lexeme, getTypeVar(lexeme), "bool"))
+    if isRes:
+        postfCode.append((rel_lex, rel_tok))
+        postfixCLR_codeGen(rel_lex, 0)
     return res_val
 
 def parseExpressionList():
@@ -391,7 +431,6 @@ def parseExpressionList():
     flag = True
     numSymb_last = 0
     numLine, lexeme, token = getSymb()
-    expr_flag = False
     while flag:
         numSymb_loc = numSymb
 
@@ -405,30 +444,53 @@ def parseExpressionList():
 
         isTerm = parseTerm(isRes=False)
         numSymb_last = numSymb if numSymb_last < numSymb else numSymb_last
-        numSymb = numSymb_last
+        numSymb = numSymb_loc
+
+        ind_type = ""
 
         if isBoolExp != "error" or  isMathExpr != "error":
+            if isBoolExp != "error":
+                parseBoolExpression()
+                ind_type = "bool"
+            elif isMathExpr != "error":
+                parseExpression()
+                ind_type = isMathExpr
             numLine, lexeme, token = getSymb()
             if lexeme == ",":
+                postfCode.append(("OUT", "out_op"))
+                codeIl.append(f"call    void[mscorlib] System.Console::WriteLine({getTypeNameIl(ind_type)})")
                 numSymb +=1
             else:
                 flag = False
         else:
             if isTerm != "error":
                 numLine, lexeme, token = getSymb()
+
+                postfCode.append((lex, "r-val"))
+                postfixCLR_codeGen("r-val", lex)
+                lex_n = lex
+                numSymb += 1
+                numLine, lex, tok = getSymb()
+                ind_type = tableOfVar[lex_n][1]
+
                 if lexeme == ",":
                     numSymb += 1
+                    postfCode.append(("OUT", "out_op"))
+                    codeIl.append(f"call    void[mscorlib] System.Console::WriteLine({getTypeNameIl(ind_type)})")
                 else:
                     flag = False
             else:
                 failParse('невідповідність у ExpressionList',
                       (numLine, lexeme, token, "Expression, BoolExpr, Id"))
+    postfCode.append(("OUT", "out_op"))
+    codeIl.append(f"call    void[mscorlib] System.Console::WriteLine({getTypeNameIl(ind_type)})")
     parseToken(")", "brackets_op", "\t" * 7)
+
 
 
 # Функція для розбору Statement за правилом для Assign
 def parseAssign():
-    global numSymb
+    global numSymb, postfCode
     print('\t' * 4 + 'parseAssign():')
     sign = 1
 
@@ -439,7 +501,8 @@ def parseAssign():
     if id_type == "error":
         failParse('використання неоголошенної зінної', (numLine, lexeme, token))
         return False
-
+    postfCode.append((lexeme, "l-val"))
+    postfixCLR_codeGen("l-val", lexeme)
     # встановити номер нової поточної лексеми
     numSymb += 1
 
@@ -449,53 +512,76 @@ def parseAssign():
 
     start_n = numSymb
     end_n = 0
+    is_min = False
     if (lexeme, token) == (":=","assign_op"):
         numLine, lexeme, token = getSymb()
         if token in ('add_op'):
+            postfCode.append((0.0, id_type))
+            postfixCLR_codeGen(id_type, 0.0)
             if lexeme == "-":
+                is_min = True
                 sign = -1
             numSymb += 1
+            start_n = numSymb
 
         is_math = parseExpression(isRes=False)
-        end_n = numSymb if numSymb > end_n and is_math != "error" else end_n
+        #end_n = numSymb if numSymb > end_n and is_math != "error" else end_n
 
         numSymb = start_n
         is_bool = parseBoolExpression(isRes=False)
-        end_n = numSymb if numSymb > end_n and is_bool != "error" else end_n
+        #end_n = numSymb if numSymb > end_n and is_bool != "error" else end_n
 
         numSymb = start_n
         n_numLine, n_lexeme, n_token = getSymb()
-        numSymb += 1
+        #numSymb += 1
         is_boolean = "bool" if n_token=="keyword" and n_lexeme in ["true", "false"] else "error"
-        end_n = numSymb if numSymb > end_n and is_boolean else end_n
-        numSymb = end_n
+        #end_n = numSymb if numSymb > end_n and is_boolean else end_n
+        #numSymb = end_n
         if is_math != "error" or is_bool != "error" or is_boolean != "error":
             #TODO: change to real val
             if is_boolean != "error":
                 if id_type != is_boolean:
                     failParse("присвоєння хибного типу",(num_line_id, id_lexeme, id_type, "bool"))
+                parseBoolExpression()
                 initVar(id_lexeme, 1 * sign)
                 parseToken(";", "punct", "\t" * 7)
+                postfCode.append((":=", "assign_op"))
+                postfixCLR_codeGen(":=", id_type)
                 return True
-            elif is_bool != "error":
-                if id_type != is_bool:
-                    failParse("присвоєння хибного типу",(num_line_id, id_lexeme, id_type, "bool"))
-                initVar(id_lexeme, 1 * sign)
-                parseToken(";", "punct", "\t" * 7)
-                return True
+            
             elif is_math != "error":
                 if id_type != is_math:
                     failParse("присвоєння хибного типу",(num_line_id, id_lexeme, id_type, is_math))
+                parseExpression()
                 initVar(id_lexeme, 1 * sign)
                 parseToken(";", "punct", "\t" * 7)
-                return
+                if is_min:
+                    postfCode.append(("-", "add_op"))
+                    postfixCLR_codeGen("-", 0)
+                postfCode.append((":=", "assign_op"))
+                postfixCLR_codeGen(":=", id_type)
+                return True
+            
+            elif is_bool != "error":
+                if id_type != is_bool:
+                    failParse("присвоєння хибного типу",(num_line_id, id_lexeme, id_type, "bool"))
+                n_numLine, n_lex, n_tok = getSymb()
+                postfCode.append((n_lex, "bool"))
+                postfixCLR_codeGen("bool", n_lex)
+                numSymb += 1
+                initVar(id_lexeme, 1 * sign)
+                postfCode.append((":=", "assign_op"))
+                postfixCLR_codeGen(":=", id_type)
+                parseToken(";", "punct", "\t" * 7)
+                return True
+                
         return False
     else:
         return False
 
 # Функція для розбору Statement за правилом для IfStatement
 def parseIf():
-    global numSymb
+    global numSymb, tableOfLbl, postfCode
     print('\t' * 4 + 'parseIf():')
     numLine, lexem, token = getSymb()
     if lexem == 'if' and token == 'keyword':
@@ -515,6 +601,15 @@ def parseIf():
             failParse("невідповідність інструкцій", (numLine, lexem, token, "bool expression or bool id"))
         parseToken(')', 'brackets_op', '\t' * 5)
         parseToken('do', 'keyword', '\t' * 5)
+
+        name_mf = "m"+str(len(tableOfLbl)+1)
+        tableOfLbl[name_mf] = 0
+        name_ms = "m" + str(len(tableOfLbl)+1)
+        tableOfLbl[name_ms] = 0
+
+        postfCode.append((name_mf, "label"))
+        postfCode.append(("JF", "jf"))
+        codeIl.append("brfalse    " + name_mf)
         if (lexem, token)==("begin","keyword"):
             numSymb += 1
             parseStatementList()
@@ -522,7 +617,16 @@ def parseIf():
         else:
             parseStatement()
         numLine, lexem, token = getSymb()
+
         if (lexem, token)==("else","keyword"):
+            postfCode.append((name_ms, "label"))
+            postfCode.append(("JMP", "jmp"))
+            codeIl.append("br     "+name_ms)
+            postfCode.append((name_mf, "label"))
+            codeIl.append(f"{name_mf}:")
+            tableOfLbl[name_mf] = len(postfCode) + 1
+            postfCode.append((":", "colon"))
+
             parseToken('else', 'keyword', '\t' * 5)
             flag = True
             numLine, lexem, token = getSymb()
@@ -532,21 +636,29 @@ def parseIf():
                 parseToken('end', 'keyword', '\t' * 5)
             else:
                 parseStatement()
+            postfCode.append((name_ms, "label"))
+            codeIl.append(f"{name_ms}:")
+            tableOfLbl[name_ms] = len(postfCode) + 1
+            postfCode.append((":", "colon"))
+
         return True
     else:
         return False
 
 # Функція для розбору Statement за правилом для ForStatement
 def parseFor():
-    global numSymb
+    global numSymb, tableOfLbl, postfCode
     print('\t' * 4 + 'parseFor():')
     numLine, lexeme, token = getSymb()
     if lexeme == 'for' and token == 'keyword':
         numSymb += 1
         numLine, lexeme, token = getSymb()
         numLine_id, lexeme_id, token_id = getSymb()
+        prm = lexeme
         if token == "id":
             if getTypeVar(lexeme) != "error":
+                postfCode.append((prm, "l-val"))
+                postfixCLR_codeGen("l-val", prm)
                 numSymb += 1
                 parseToken(':=', 'assign_op', '\t' * 5)
                 type = parseExpression()
@@ -554,6 +666,8 @@ def parseFor():
                     failParse('присвоєння хибного типу', (numLine, lexeme, type, 'int'))
                 #TODO: change to real val
                 initVar(lexeme_id, 1)
+                postfCode.append((":=", "assign_op"))
+                postfixCLR_codeGen(":=", type)
             else:
                 failParse('використання неоголошенної зінної', (numLine, lexeme, token))
                 return False
@@ -561,14 +675,102 @@ def parseFor():
             return False
 
         _, lexeme, token = getSymb()
+
+        _r1 = f"_r{len(tableOfVar)}"
+        _r2 = f"_r{len(tableOfVar) + 1}"
+        tableOfVar[_r1]=(len(tableOfVar)+1,'int',1)
+        tableOfVar[_r2] = (len(tableOfVar)+1, 'int', 1)
+
+        name_mf = "m" + str(len(tableOfLbl) + 1)
+        name_ms = "m" + str(len(tableOfLbl) + 2)
+        name_mt = "m" + str(len(tableOfLbl) + 3)
+        tableOfLbl[name_mt] = 0
+        tableOfLbl[name_mt] = 0
+        tableOfLbl[name_mt] = 0
+        postfCode.append((_r1, "l-val"))
+        postfixCLR_codeGen("l-val", _r1)
+        postfCode.append((1, "int"))
+        postfixCLR_codeGen("int", 1)
+        postfCode.append((":=", "assign_op"))
+        postfixCLR_codeGen(":=", "int")
+
+        postfCode.append((name_mf, "label"))
+        tableOfLbl[name_mf] = len(postfCode)+1
+        postfCode.append((":", "colon"))
+        codeIl.append(f"{name_mf}:")
+        postfCode.append((_r2, "l-val"))
+        postfixCLR_codeGen("l-val", _r2)
+
+        postfCode.append((0, "int"))
+        postfixCLR_codeGen("int", 0)
+        postfCode.append((1, "int"))
+        postfixCLR_codeGen("int", 1)
+
+        is_down = False
         if (lexeme, token) == ("down","keyword"):
             numSymb += 1
+            is_down = True
+            postfCode.append(("-", "add_op"))
+            postfixCLR_codeGen("-", 0)
+        else:
+            postfCode.append(("+", "add_op"))
+            postfixCLR_codeGen("+", 0)
+
         parseToken('to', 'keyword', '\t' * 5)
+
+        postfCode.append((":=", "assign_op"))
+        postfixCLR_codeGen(":=", "int")
+        postfCode.append((_r1, "r-val"))
+        postfixCLR_codeGen("r-val", _r1)
+        postfCode.append((0, "int"))
+        postfixCLR_codeGen("int", 0)
+        postfCode.append(("=", "rel_op"))
+        postfixCLR_codeGen("=", 0)
+        postfCode.append((name_ms, "label"))
+        postfCode.append(("JF", "jf"))
+        codeIl.append("brfalse    "+name_ms)
+        postfCode.append((prm, "l-val"))
+        postfixCLR_codeGen("l-val", prm)
+        postfCode.append((prm, "r-val"))
+        postfixCLR_codeGen("r-val", prm)
+        postfCode.append((_r2, "r-val"))
+        postfixCLR_codeGen("r-val", _r2)
+        postfCode.append(("+", "add_op"))
+        postfixCLR_codeGen("+", 0)
+        postfCode.append((":=", "assign_op"))
+        postfixCLR_codeGen(":=", tableOfVar[prm][1])
+        postfCode.append((name_ms, "label"))
+        tableOfLbl[name_ms] = len(postfCode)+1
+        postfCode.append((":", "colon"))
+        codeIl.append(f"{name_ms}:")
+        postfCode.append((_r1, "l-val"))
+        postfixCLR_codeGen("l-val", _r1)
+        postfCode.append((0, "int"))
+        postfixCLR_codeGen("int", 0)
+        postfCode.append((":=", "assign_op"))
+        postfixCLR_codeGen(":=", "int")
+        postfCode.append((prm, "r-val"))
+        postfixCLR_codeGen("r-val", prm)
+
         numLine, lexeme, token = getSymb()
         type = parseExpression()
         if type != "int":
             failParse('присвоєння хибного типу', (numLine, lexeme, type, 'int'))
         parseToken('do', 'keyword', '\t' * 5)
+        postfCode.append(("-", "add_op"))
+        postfixCLR_codeGen("-", 0)
+        postfCode.append((_r2, "r-val"))
+        postfixCLR_codeGen("r-val", _r2)
+        postfCode.append(("*", "mult_op"))
+        postfixCLR_codeGen("*", 0)
+        postfCode.append((0, "int"))
+        postfixCLR_codeGen("int", 0)
+        postfCode.append(("<=", "rel_op"))
+        postfixCLR_codeGen("<=", 0)
+        postfCode.append((name_mt, "label"))
+        postfCode.append(("JF", "jf"))
+        codeIl.append("brfalse    "+name_mt)
+
         flag = True
         numLine, lexeme, token = getSymb()
         if (lexeme, token) == ("begin", "keyword"):
@@ -577,17 +779,15 @@ def parseFor():
             parseToken('end', 'keyword', '\t' * 5)
         else:
             parseStatement()
-        numLine, lexeme, token = getSymb()
-        if (lexeme, token) == ("else", "keyword"):
-            parseToken('else', 'keyword', '\t' * 5)
-            flag = True
-            numLine, lexeme, token = getSymb()
-            if (lexeme, token) == ("begin", "keyword"):
-                numSymb += 1
-                parseStatementList()
-                parseToken('end', 'keyword', '\t' * 5)
-            else:
-                parseStatement()
+
+        postfCode.append((name_mf, "label"))
+        postfCode.append(("JMP", "jmp"))
+        codeIl.append("br    "+name_mf)
+        postfCode.append((name_mt, "label"))
+        tableOfLbl[name_mt] = len(postfCode)+1
+        postfCode.append((":", "colon"))
+        codeIl.append(f"{name_mt}:")
+
         return True
     else:
         return False
@@ -607,7 +807,7 @@ def parseWrite():
 
 # Функція для розбору Statement за правилом для Inp
 def parseRead():
-    global numSymb
+    global numSymb, postfCode
     print('\t' * 4 + 'parseRead():')
     numLine, lexeme, token = getSymb()
     if (lexeme, token) == ("read", "keyword"):
@@ -618,8 +818,9 @@ def parseRead():
             numLine, lexeme, token = getSymb()
             if token == "id":
                 if getTypeVar(lexeme) != "error":
-                    #TODO: switch to real val (for now it will be 1)
                     initVar(lexeme, 1)
+                    postfCode.append((lexeme, "r-val"))
+                    postfixCLR_codeGen("r-val", lexeme)
                     numSymb += 1
                 else:
                     failParse('використання неоголошенної зінної', (numLine, lexeme, token))
@@ -632,6 +833,8 @@ def parseRead():
                 numSymb += 1
             else:
                 flag = False
+
+            postfCode.append(("IN", "in_op"))
         parseToken(")", "brackets_op", "\t" * 5)
         parseToken(";", "punct", "\t" * 5)
         return True
@@ -644,15 +847,15 @@ def parseRead():
 # вивести поточну інформацію та діагностичне повідомлення
 def failParse(str, tuple):
     if str == 'неочікуваний кінець програми':
-        (lexeme, token, numRow) = tuple
+        (lexeme, token, numSymb) = tuple
         print('Parser ERROR: \n\t Неочікуваний кінець програми - в таблиці символів (розбору) немає запису з номером {1}. \n\t Очікувалось - {0}'.format(
-                (lexeme, token), numRow))
+                (lexeme, token), numSymb))
         exit(401)
 
     elif str == 'getSymb(): неочікуваний кінець програми':
-        numRow = tuple
+        numSymb = tuple
         print('Parser ERROR: \n\t Неочікуваний кінець програми - в таблиці символів (розбору) немає запису з номером {0}. \n\t Останній запис - {1}'.format(
-                numRow, tableOfSymb[numRow - 1]))
+                numSymb, tableOfSymb[numSymb - 1]))
         exit(402)
 
     elif str == 'невідповідність токенів':
@@ -719,3 +922,134 @@ def failParse(str, tuple):
         (numLine, lexeme, token, additional_msg) = tuple
         print('Parser ERROR: \n\t Щось пішло не так!')
         exit(400)
+
+
+
+def sufTypes(type_v):
+    if type_v == "int":
+        return 'i4'
+    else:
+        return 'r4'
+
+def getTypeNameIl(type_v):
+    if type_v == "bool": return "bool"
+    elif type_v == "int": return "int32"
+    elif type_v == "real": return "float32"
+    else: return "error"
+
+def relopCRL(rel_op):
+    if rel_op == "<": return 'clt'
+    elif rel_op == ">": return 'cgt'
+    elif rel_op == "<=": return 'cle'
+    elif rel_op == ">=": return 'cqe'
+    elif rel_op == "=": return 'ceq'
+    elif rel_op == "<>": return 'beg'
+
+def postfixCLR_codeGen(casse, toTran):
+    global codeIl
+    if casse == 'l-val':
+        codeIl.append('ldloca   '+toTran)
+    elif casse == ":=":
+        sufficsType = sufTypes(toTran)
+        codeIl.append('stind.'+sufficsType)
+    elif casse == "+":
+        codeIl.append('add')
+    elif casse == "-":
+        codeIl.append('sub')
+    elif casse == "*":
+        codeIl.append('mul')
+    elif casse == "/":
+        codeIl.append('div')
+    elif casse == "r-val":
+        codeIl.append('ldloc    '+toTran)
+    elif casse in ("int", "real"):
+        sufficsType = sufTypes(toTran)
+        codeIl.append('ldc.'+sufficsType+f"   {toTran}")
+    elif casse == "boolconst":
+        if toTran=="true":
+            val = "1"
+        elif toTran=="false":
+            val = "0"
+        codeIl.append('ldc.i4   ' + val)
+    elif casse == "real_op":
+        relop = relopCRL(toTran)
+        codeIl.append(relop)
+
+def saveIlCode(filename):
+    str = '''
+
+//  Microsoft (R) .NET Framework IL Disassembler.  Version 4.8.3928.0
+//  Copyright (c) Microsoft Corporation.  All rights reserved.
+
+
+
+// Metadata version: v4.0.30319
+.assembly extern mscorlib
+{
+  .publickeytoken = (B7 7A 5C 56 19 34 E0 89 )                         // .z\V.4..
+  .ver 4:0:0:0
+}
+.assembly file1
+{
+  .custom instance void [mscorlib]System.Runtime.CompilerServices.CompilationRelaxationsAttribute::.ctor(int32) = ( 01 00 08 00 00 00 00 00 ) 
+  .custom instance void [mscorlib]System.Runtime.CompilerServices.RuntimeCompatibilityAttribute::.ctor() = ( 01 00 01 00 54 02 16 57 72 61 70 4E 6F 6E 45 78   // ....T..WrapNonEx
+                                                                                                             63 65 70 74 69 6F 6E 54 68 72 6F 77 73 01 )       // ceptionThrows.
+
+  // --- The following custom attribute is added automatically, do not uncomment -------
+  //  .custom instance void [mscorlib]System.Diagnostics.DebuggableAttribute::.ctor(valuetype [mscorlib]System.Diagnostics.DebuggableAttribute/DebuggingModes) = ( 01 00 07 01 00 00 00 00 ) 
+
+  .hash algorithm 0x00008004
+  .ver 0:0:0:0
+}
+.module file1.exe
+// MVID: {19EA7ACA-85EF-4B03-BE73-5F9ED591B011}
+.imagebase 0x00400000
+.file alignment 0x00000200
+.stackreserve 0x00100000
+.subsystem 0x0003       // WINDOWS_CUI
+.corflags 0x00000001    //  ILONLY
+// Image base: 0x06620000
+
+
+// =============== CLASS MEMBERS DECLARATION ===================
+
+.class public auto ansi beforefieldinit Program1
+       extends [mscorlib]System.Object
+{
+  .method public hidebysig static void  Main() cil managed
+  {
+    .entrypoint
+    // Code size       16 (0x10)
+    .maxstack  2
+    .locals init '''
+
+    loc = "("+", ".join([f"{getTypeNameIl(val[1])} {key}" for key,val in tableOfVar.items()])+")"
+    code_t = "\n".join([f"IL_{i:04x}:  "+codeIl[i] for i in range(len(codeIl))])
+
+    str2 = '''
+  } // end of method Program1::Main
+
+  .method public hidebysig specialname rtspecialname 
+          instance void  .ctor() cil managed
+  {
+    // Code size       8 (0x8)
+    .maxstack  8
+    IL_0000:  ldarg.0
+    IL_0001:  call       instance void [mscorlib]System.Object::.ctor()
+    IL_0006:  nop
+    IL_0007:  ret
+  } // end of method Program1::.ctor
+
+} // end of class Program1
+
+
+// =============================================================
+
+// *********** DISASSEMBLY COMPLETE ***********************
+// WARNING: Created Win32 resource file file1.res
+    '''
+    final = str+loc+code_t+str2
+    f = open(filename+".il", "w")
+    f.write(final)
+    f.close()
+    print("Il код збережено до "+filename+".il")
