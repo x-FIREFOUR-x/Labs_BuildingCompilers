@@ -1,8 +1,8 @@
     
     # Таблиця лексем мови
 tokenTable = {
-    'true': 'boolval',
-    'false': 'boolval',
+    'true': 'keyword',
+    'false': 'keyword',
     'int': 'keyword',
     'real': 'keyword',
     'bool': 'keyword',
