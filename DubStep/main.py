@@ -1,6 +1,6 @@
 from DubStep_lexer import *
 from DubStep_parser import *
-
+from postfixMachine import *
 
 len_tableOfSymb = 0
 
@@ -25,9 +25,22 @@ def compileToPOstfix(fileName):
     print('tableOfId:{0}'.format(tableOfId))
     print('tableOfConst:{0}'.format(tableOfConst))
     print('tableOfVar:{0}'.format(tableOfVar))
+    print('postCode:{0}'.format(postfCode))
+    print('CIL Code:{0}'.format(codeIl))
     print('-' * 30)
 
 
+    pm1 = PSM()
+    pm1.tableOfId = tableOfVar
+    pm1.tableOfLabel = tableOfLbl
+    pm1.tableOfConst = tableOfConst
+    pm1.postfixCode = postfCode
+    pm1.serv()
+    pm1.savePostfixCode(fileName)
+    pm1.loadPostfixFile(fileName)  # завантаження .postfix - файла
 
-compileToPOstfix("test.ds")
+    pm1.postfixExec()
+
+
+compileToPOstfix("test2.ds")
 #compileToPOstfix("testError16.ds")

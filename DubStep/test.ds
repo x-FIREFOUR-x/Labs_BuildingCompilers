@@ -14,5 +14,5 @@ begin
 			sum := sum + input;
 		else 
 			write(input);
-		end
+	end
 end.
