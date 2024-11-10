@@ -6,13 +6,15 @@ var
 	flag: bool;
 begin 
 	sum := 0;
-	read(count); 
+	read(count);
 	for j := 1 to count do 
 	begin 
-		read(input); 
+		read(input);
+		write(input);
 		if (input > 5) do 
 			sum := sum + input;
-		else 
-			write(input);
+		else
+			sum := sum - input;
 	end
+	write(sum);
 end.

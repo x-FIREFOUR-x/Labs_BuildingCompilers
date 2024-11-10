@@ -4,11 +4,13 @@ from postfixMachine import *
 
 len_tableOfSymb = 0
 
+DIR_WITH_TESTS = "tests/"
+DIR_WITH_POSTFIX = "postfix/"
 
 def compileToPOstfix(fileName):
     global len_tableOfSymb
     print("Start Lexer")
-    FSuccess = lex(fileName)
+    FSuccess = lex(DIR_WITH_TESTS + fileName)
     if not FSuccess:
         exit(1)
     print("Lexer - Success")
@@ -36,11 +38,11 @@ def compileToPOstfix(fileName):
     pm1.tableOfConst = tableOfConst
     pm1.postfixCode = postfCode
     pm1.serv()
-    pm1.savePostfixCode(fileName)
-    pm1.loadPostfixFile(fileName)  # завантаження .postfix - файла
+    pm1.savePostfixCode(DIR_WITH_POSTFIX + fileName)
+    pm1.loadPostfixFile(DIR_WITH_POSTFIX + fileName)  # завантаження .postfix - файла
 
     pm1.postfixExec()
 
 
-compileToPOstfix("test2.ds")
-#compileToPOstfix("testError16.ds")
+compileToPOstfix("test.ds")
+#compileToPOstfix("tests/testError16.ds")2
