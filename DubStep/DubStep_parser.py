@@ -349,7 +349,7 @@ def parseFactor(isRes=True, isFirstMinus=True):
     elif token in ('add_op'):
         if not isFirstMinus:
             failParse("присвоєння хибного типу", (numLine, lexeme, "подвійний мінус", "мінус лише один"))
-        numLine += 1
+        numSymb += 1
         print('\t' * 7 + 'в рядку {0} - {1}'.format(numLine, (lexeme, token)))
         res_pars = parseFactor(isRes=isRes, isFirstMinus=False)
         if isRes:
@@ -538,8 +538,7 @@ def parseAssign():
         #end_n = numSymb if numSymb > end_n and is_boolean else end_n
         #numSymb = end_n
         if is_math != "error" or is_bool != "error" or is_boolean != "error":
-            #TODO: change to real val
-            if is_boolean != "error":
+            if is_bool != "error":
                 if id_type != is_boolean:
                     failParse("присвоєння хибного типу",(num_line_id, id_lexeme, id_type, "bool"))
                 parseBoolExpression()
@@ -550,7 +549,7 @@ def parseAssign():
                 return True
             
             elif is_math != "error":
-                if id_type != is_math:
+                if is_math not in ("int", "real"):
                     failParse("присвоєння хибного типу",(num_line_id, id_lexeme, id_type, is_math))
                 parseExpression()
                 initVar(id_lexeme, 1 * sign)
@@ -562,8 +561,8 @@ def parseAssign():
                 postfixCLR_codeGen(":=", id_type)
                 return True
             
-            elif is_bool != "error":
-                if id_type != is_bool:
+            elif is_boolean != "error":
+                if id_type != is_boolean:
                     failParse("присвоєння хибного типу",(num_line_id, id_lexeme, id_type, "bool"))
                 n_numLine, n_lex, n_tok = getSymb()
                 postfCode.append((n_lex, "bool"))

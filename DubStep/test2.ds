@@ -1,0 +1,33 @@
+program counter
+var
+   	m,mm, a, hh: int;
+	n, df, j, x: int;
+	sum: int;
+    y: real;
+ 	flag: bool;
+begin
+    flag := false;
+    m := 5;
+    n := -m;
+    hh := 2;
+    sum := (m+3)*2/8+7;
+    write(m>n, m);
+    write(hh+2);
+    read(hh,y);
+    read(flag);
+    write(hh, y, flag);
+
+  	for j := 2 to m+2 do
+  	begin
+        read(y);
+        for x := 1 to m do
+            if (-x < -2) do
+                write(j,x);
+            else
+                write(13);
+  	end
+  	y := 2.0^3^-2+3;
+  	m := 2.5+3;
+  	hh := 2 + 3.6;
+  	write(y, m, hh, 2^9, 8^2);
+end.
