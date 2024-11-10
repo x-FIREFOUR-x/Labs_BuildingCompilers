@@ -593,17 +593,22 @@ def parseIf():
         numSymb = start_numSymb
         is_term = parseExpression(isRes=False)
         end_numSymb = numSymb if numSymb > end_numSymb else end_numSymb
-        numSymb = end_numSymb
+        numSymb = start_numSymb
         flag = True
         numLine, lexem, token = getSymb()
         if is_bool=="error" and is_term in ("error", "int", "real"):
             failParse("невідповідність інструкцій", (numLine, lexem, token, "bool expression or bool id"))
+        else:
+            if is_bool!="error":
+                parseBoolExpression()
+            else:
+                parseExpression()
         parseToken(')', 'brackets_op', '\t' * 5)
         parseToken('do', 'keyword', '\t' * 5)
 
-        name_mf = "m"+str(len(tableOfLbl)+1)
+        name_mf = "m" + str(len(tableOfLbl) + 1)
         tableOfLbl[name_mf] = 0
-        name_ms = "m" + str(len(tableOfLbl)+1)
+        name_ms = "m" + str(len(tableOfLbl) + 1)
         tableOfLbl[name_ms] = 0
 
         postfCode.append((name_mf, "label"))
@@ -663,7 +668,6 @@ def parseFor():
                 type = parseExpression()
                 if type != "int":
                     failParse('присвоєння хибного типу', (numLine, lexeme, type, 'int'))
-                #TODO: change to real val
                 initVar(lexeme_id, 1)
                 postfCode.append((":=", "assign_op"))
                 postfixCLR_codeGen(":=", type)
