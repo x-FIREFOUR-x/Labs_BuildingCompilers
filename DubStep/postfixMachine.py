@@ -338,7 +338,7 @@ def getValue(lex,tok):
   if tok == 'real':
     return float(lex)
   elif tok == 'int':
-    return int(lex)
+    return int(float(lex))
   elif tok == 'bool':
     return bool(lex)
 
