@@ -134,12 +134,12 @@ class PSM():             # Postfix Stack Macine
     self.maxNumbInstr = len(self.postfixCode) / 2
     try:
       while self.numInstr < self.maxNumbInstr:
-        self.stack.print()
+        #self.stack.print()
         lex, tok = self.postfixCode[self.numInstr]
         if tok in ('int', 'real', 'l-val', 'r-val', 'label', 'bool'):
-          self.stack.push((lex,tok))
+          self.stack.push((lex, tok))
           self.numInstr = self.numInstr + 1
-        elif tok in ('jmp','jf','colon'):
+        elif tok in ('jmp', 'jf', 'colon'):
           self.doJumps(lex, tok)
         elif tok == 'out_op':
           id, _ = self.stack.pop()
@@ -169,7 +169,7 @@ class PSM():             # Postfix Stack Macine
               raise PSMExcept(1)
           self.tableOfId[id] = (self.tableOfId[id][0], my_val_type, my_val)
         else: 
-          print(f'-=-=-=========({lex},{tok})  numInstr={self.numInstr}')
+          #print(f'-=-=-=========({lex},{tok})  numInstr={self.numInstr}')
           self.doIt(lex, tok)
           self.numInstr = self.numInstr + 1
       self.stack.print()
@@ -194,7 +194,7 @@ class PSM():             # Postfix Stack Macine
         self.numInstr = self.numInstr + 1
 
 
-  def doIt(self,lex,tok):
+  def doIt(self, lex, tok):
     # зняти з вершини стека ідентифікатор (правий операнд)
     #self.stack.print()
     (lexR, tokR) = self.stack.pop()
