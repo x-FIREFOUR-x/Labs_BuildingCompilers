@@ -1,0 +1,102 @@
+.target: Postfix Machine
+.version: 0.2
+
+.vars(
+   count  int        
+   j     int        
+   input  real       
+   sum   int        
+   flag  bool       
+   _r5   int        
+   _r6   int        
+)
+
+.labels(
+   m3    71 
+   m1    13 
+   m2    30 
+   m4    60 
+   m5    67 
+)
+
+.constants(
+   0              1 
+   1              2 
+   5              3 
+)
+
+.code(
+   sum   l-val 
+   0     int   
+   :=    assign_op
+   count r-val 
+   IN    in_op 
+   j     l-val 
+   1     int   
+   :=    assign_op
+   _r5   l-val 
+   1     int   
+   :=    assign_op
+   m1    label 
+   :     colon 
+   _r6   l-val 
+   0     int   
+   1     int   
+   +     add_op
+   :=    assign_op
+   _r5   r-val 
+   0     int   
+   =     rel_op
+   m2    label 
+   JF    jf    
+   j     l-val 
+   j     r-val 
+   _r6   r-val 
+   +     add_op
+   :=    assign_op
+   m2    label 
+   :     colon 
+   _r5   l-val 
+   0     int   
+   :=    assign_op
+   j     r-val 
+   count r-val 
+   -     add_op
+   _r6   r-val 
+   *     mult_op
+   0     int   
+   <=    rel_op
+   m3    label 
+   JF    jf    
+   input r-val 
+   IN    in_op 
+   input r-val 
+   OUT   out_op
+   input r-val 
+   5     int   
+   >     rel_op
+   m4    label 
+   JF    jf    
+   sum   l-val 
+   sum   r-val 
+   input r-val 
+   +     add_op
+   :=    assign_op
+   m5    label 
+   JMP   jmp   
+   m4    label 
+   :     colon 
+   sum   l-val 
+   sum   r-val 
+   input r-val 
+   -     add_op
+   :=    assign_op
+   m5    label 
+   :     colon 
+   m1    label 
+   JMP   jmp   
+   m3    label 
+   :     colon 
+   sum   r-val 
+   OUT   out_op
+)

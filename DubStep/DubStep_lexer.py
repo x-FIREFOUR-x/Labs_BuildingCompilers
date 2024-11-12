@@ -1,8 +1,8 @@
     
     # Таблиця лексем мови
 tokenTable = {
-    'true': 'boolval',
-    'false': 'boolval',
+    'true': 'keyword',
+    'false': 'keyword',
     'int': 'keyword',
     'real': 'keyword',
     'bool': 'keyword',
@@ -94,7 +94,7 @@ state = initState  # поточний стан
 
 
 # FSuccess - ознака успішності розбору
-FSuccess = ('Lexer', False)
+FSuccess = False
 
 
 numLine = 1  # лексичний аналіз починаємо з першого рядка
@@ -124,12 +124,12 @@ def lex(file_path):
                 lexeme = ''  # якщо стан НЕ заключний, а стартовий - нова лексема
             else:
                 lexeme += char  # якщо стан НЕ закл. і не стартовий - додати символ до лексеми
-        FSuccess = ('Lexer', True)
+        FSuccess = True
         print('Lexer: Лексичний аналіз завершено успішно')
         return FSuccess
     except SystemExit as e:
         # Встановити ознаку неуспішності
-        FSuccess = ('Lexer', False)
+        FSuccess = False
         # Повідомити про факт виявлення помилки
         print('Lexer: Аварійне завершення програми з кодом {0}'.format(e))
         return FSuccess
@@ -140,7 +140,7 @@ def processing():
         numLine += 1
         lexeme = ''
         state = initState
-    if state in (3, 5, 7):  # id, keyword; int; float
+    if state in (3, 5, 7):  # id, keyword; int; real
         token = getToken(state, lexeme)
         if token != 'keyword':
             index = indexIdConst(state, lexeme)

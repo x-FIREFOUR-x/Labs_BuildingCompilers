@@ -2,7 +2,6 @@ program counter
 var 
 	count, j: int;
 	input: real; 
-	sum: int; 
 	flag: bool;
 begin 
 	sum := 0;
