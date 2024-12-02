@@ -38,7 +38,7 @@
     stind.r4
     ldloc    b
     ldc.r4   5.0
-    cgt
+    clt
     brfalse    m1
     ldloc    a
     call    void[mscorlib] System.Console::WriteLine(int32)

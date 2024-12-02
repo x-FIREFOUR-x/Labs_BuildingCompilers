@@ -5,7 +5,7 @@ var
 begin 
 	a := 0;
 	b := 3.1 + 2.0;
-	if (b > 5.0) do 
+	if (b < 5.0) do 
 		write(a);
 	else
 		write(b);
