@@ -1,3 +1,4 @@
+
 // Referenced Assemblies.
 .assembly extern mscorlib
 {
@@ -26,26 +27,26 @@
      )
 
     .entrypoint
-    .maxstack 8
-    ldloca    a
-    ldc.i4    0
+    .maxstack  8
+    ldloca   a
+    ldc.i4   0
     stind.i4
-    ldloca    b
-    ldc.r4    3.1
-    ldc.r4    2.0
+    ldloca   b
+    ldc.r4   3.1
+    ldc.r4   2.0
     add
     stind.r4
-    ldloc     b
-    ldc.r4    5.0
+    ldloc    b
+    ldc.r4   5.0
     cgt
-    brfalse   m1
-    ldloc     a
-    call void[mscorlib] System.Console::WriteLine(int32)
-    br        m2
+    brfalse    m1
+    ldloc    a
+    call    void[mscorlib] System.Console::WriteLine(int32)
+    br     m2
 m1:
-    ldloc     b
-    call void[mscorlib] System.Console::WriteLine(float32)
+    ldloc    b
+    call    void[mscorlib] System.Console::WriteLine(float32)
 m2:
     ret
-  }
+}
 }

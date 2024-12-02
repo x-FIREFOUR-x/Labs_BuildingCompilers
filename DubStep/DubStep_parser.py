@@ -947,6 +947,7 @@ def relopCRL(rel_op):
     elif rel_op == ">=": return 'cqe'
     elif rel_op == "=": return 'ceq'
     elif rel_op == "<>": return 'beg'
+    else: return ""
 
 def postfixCLR_codeGen(casse, toTran):
     global codeIl
@@ -974,8 +975,8 @@ def postfixCLR_codeGen(casse, toTran):
         elif toTran=="false":
             val = "0"
         codeIl.append('ldc.i4   ' + val)
-    elif casse == "real_op":
-        relop = relopCRL(toTran)
+    elif relopCRL(casse) != "":
+        relop = relopCRL(casse)
         codeIl.append(relop)
 
 def saveIlCode(filename):
