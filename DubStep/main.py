@@ -52,5 +52,5 @@ def compileToPOstfix(fileName):
 
 
 
-compileToPOstfix("test.ds")
+compileToPOstfix("test3.ds")
 #compileToPOstfix("tests/testError16.ds")2

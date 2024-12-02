@@ -966,7 +966,7 @@ def postfixCLR_codeGen(casse, toTran):
     elif casse == "r-val":
         codeIl.append('ldloc    '+toTran)
     elif casse in ("int", "real"):
-        sufficsType = sufTypes(toTran)
+        sufficsType = sufTypes(casse)
         codeIl.append('ldc.'+sufficsType+f"   {toTran}")
     elif casse == "boolconst":
         if toTran=="true":

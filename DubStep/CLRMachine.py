@@ -1,4 +1,6 @@
 
+# C:\Windows\Microsoft.NET\Framework64\v4.0.30319\ilasm.exe test.il .\test.exe
+
 convert_type = {"real": "float32", "int": "int32", "bool": "bool"}
 
 class CLRM():             # CLR Machine
@@ -33,31 +35,34 @@ class CLRM():             # CLR Machine
   extends [mscorlib]System.Object
 {{
           
-    .method private hidebysig static void Main(string[] args) cil managed
-    {{
+    .method public static void Main() cil managed {{
     .locals (
 '''
     header = header.format(fileName=fileName)
     f.write(header)
 
+
+    var_str = ""
     for var in self.tableOfId:
       indx, var_type, _ =  self.tableOfId[var]
-      f.write(f"       [{indx - 1}] {convert_type[var_type]} {var},\n")
-  
-    str = '''     )
+      var_str = var_str + f"       [{indx - 1}] {convert_type[var_type]} {var},\n"
+    var_str = var_str[:-2] + "\n     )"
+    f.write(var_str)
 
-   .entrypoint
-   //.maxstack  8
-  '''
-    
+    str = '''
+
+    .entrypoint
+    .maxstack  8
+'''
     f.write(str)
+
 
     codeil = ""
     for l in self.codeIl:
       if (len(l) == 3 and l[0] == 'm' and l[2] == ':'):
         codeil = codeil + l + "\n"
       else:
-        codeil = codeil + "   " + l + "\n"
+        codeil = codeil + "    " + l + "\n"
     f.write(codeil[:-1])
 
 
