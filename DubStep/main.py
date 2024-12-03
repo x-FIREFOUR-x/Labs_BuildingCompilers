@@ -1,11 +1,13 @@
 from DubStep_lexer import *
 from DubStep_parser import *
 from postfixMachine import *
+from CLRMachine import *
 
 len_tableOfSymb = 0
 
 DIR_WITH_TESTS = "tests/"
 DIR_WITH_POSTFIX = "postfix/"
+DIR_WITH_IL = "il/"
 
 def compileToPOstfix(fileName):
     global len_tableOfSymb
@@ -31,6 +33,10 @@ def compileToPOstfix(fileName):
     print('CIL Code:{0}'.format(codeIl))
     print('-' * 30)
 
+    clr = CLRM()
+    clr.tableOfId = tableOfVar
+    clr.codeIl = codeIl
+    clr.saveCLICode(DIR_WITH_IL, fileName[: fileName.find(".")])
 
     pm1 = PSM()
     pm1.tableOfId = tableOfVar
@@ -44,5 +50,7 @@ def compileToPOstfix(fileName):
     pm1.postfixExec()
 
 
-compileToPOstfix("test.ds")
+
+
+compileToPOstfix("test3.ds")
 #compileToPOstfix("tests/testError16.ds")2
